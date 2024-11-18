@@ -2,7 +2,7 @@
         // Initiate a Canvas instance  
         var canvas1  = new fabric.Canvas('c1');
 	results1 = document.getElementById('results-c1');
-        var simbolo = eval('#simbolo');
+        var simbolo = '#simbolo';
         var Z = eval('#Z');
         var A = eval('#A');
         var carga = eval('#cargaEl');
