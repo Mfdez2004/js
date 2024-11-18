@@ -1,11 +1,11 @@
-(function() {
+    function createElement(simbolo, Z, A, carga, canvas1) {
         // Initiate a Canvas instance  
-        var canvas1  = new fabric.Canvas('c1');
-	results1 = document.getElementById('results-c1');
-        var simbolo = String('#simbolo');
-        var Z = eval('#Z');
-        var A = eval('#A');
-        var carga = eval('#cargaEl');
+        //var canvas1 = new fabric.Canvas('c2');
+        results1 = document.getElementById('results-c1');
+        //var simbolo = String('#simbolo');
+        //var Z = eval('#Z');
+        //var A = eval('#A');
+        //var carga = eval('#cargaEl');
         var cargaTxt = "";
         switch (carga) {
             case 0:
@@ -101,5 +101,5 @@
             "selectable": false
         });
         canvas1.add(rec, txtSymbol, txtA, txtZ, txtCarga);
-	//this.__canvases.push(canvas1);
-})();
+        //this.__canvases.push(canvas1);
+    };
