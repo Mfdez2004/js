@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cuestionario de Material de Laboratorio</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: #eef4f7;
+      margin: 0;
+      padding: 20px;
+    }
+    #quiz-container {
+      background: white;
+      border-radius: 15px;
+      max-width: 600px;
+      margin: 50px auto;
+      padding: 20px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+    #enunciado {
+      background: black;
+      color: white;
+      border-radius: 15px;
+      max-width: 600px;
+      margin: 50px auto;
+      padding: 20px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+    img {
+      width: 150px;
+      margin: 20px;
+      border: 2px solid #ccc;
+      border-radius: 10px;
+      background-color: #f9f9f9;
+    }
+    button {
+      display: block;
+      margin: 10px auto;
+      padding: 10px 20px;
+      font-size: 16px;
+      border-radius: 10px;
+      border: none;
+      background-color: #007BFF;
+      color: white;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    .option {
+      background-color: #e9ecef;
+      color: black;
+      width: 80%;
+    }
+    #result {
+      font-size: 1.2em;
+      margin-top: 20px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="quiz-container">
+    <h2>Cuestionario de Material de Laboratorio</h2>
+    <div id="question-container">
+      <p id="question-number"></p>
+      <img id="material-img" src="" alt="Material de laboratorio">
+      <div id="enunciado"><p>Selecciona la opción correcta</p></div>
+      <div id="options"></div>
+    </div>
+    <div id="result"></div>
+  </div>
+
+  <script>
+    const materiales = [
+      { nombre: "Vaso de precipitados", img: "https://labbox.es/wp-content/uploads/2024/09/BKLR-600-006.jpg" },
+      { nombre: "Matraz Erlenmeyer", img: "https://kitlab.exa.unicen.edu.ar/erlenmyer.jpg" },
+      { nombre: "Probeta", img: "https://www.labcomercial.com/35172-large_default/probeta-graduada-50ml-clase-a.jpg" },
+      //{ nombre: "Pipeta", img: "https://www.dhmaterialmedico.com/material-medico/fotos/pipeta-serolgica-estril-punta-a-1ml-caja-de-500-unidades-1649233335.jpg" },
+      //{ nombre: "Bureta", img: "https://viresa.com.mx/product/image/medium/GL-115.451.03_GL-115.451.01_1.png" },
+      { nombre: "Matraz aforado", img: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/07/10mL_Messkolben_mit_Schliff_A.jpg/800px-10mL_Messkolben_mit_Schliff_A.jpg" },
+      { nombre: "Embudo", img: "https://www.ecovidasolar.es/1771-medium_default/embudo-vidrio-borosilicato.jpg" },
+      { nombre: "Pipeta cuentagotas", img: "https://granvelada.com/31723-large_default/pipeta-cuentagotas-30-ml.jpg" },
+      { nombre: "Tubo de ensayo", img: "https://lacasadelartesano.com.uy/images/thumbs/0020141_tubo-ensayo-borosilicato-12-75mms-5ml-unidad.webp" },
+      { nombre: "Mechero Bunsen", img: "https://labbox.es/wp-content/uploads/2024/09/BUNS-B01-001.jpg" },
+      //{ nombre: "Vidrio de reloj", img: "https://entomopraxis.com/tienda/867-large_default/vidrio-de-reloj-40-45-mm.jpg" },
+      //{ nombre: "Pinzas de madera", img: "https://www.auxilab.es/controles/ObtenerImagen.ashx?f=%5c00%5c03%5cc8%5cyh_FFN006.jpg" },
+      { nombre: "Gradilla", img: "https://labexco.com/wp-content/uploads/2019/07/Gradilla-metalica-7229.png" },
+      { nombre: "Espátula", img: "https://images.dutscher.com/reference/hd/076465.webp" },
+      //{ nombre: "Placa Petri", img: "https://m.media-amazon.com/images/I/61ZZJUA60AL._SL1500_.jpg" },
+      //{ nombre: "Microscopio", img: "https://upload.wikimedia.org/wikipedia/commons/3/3b/Microscope.svg" },
+      { nombre: "Balanza de laboratorio", img: "https://radwag.com/360/360_wtc_600/360_assets/wtc_/images/Waga%20precyzyjna_WTC_600_68.effectsResult.jpg" },
+      //{ nombre: "Refrigerante Liebig", img: "https://upload.wikimedia.org/wikipedia/commons/3/36/Liebig_condenser.svg" },
+      { nombre: "Soporte universal", img: "https://didakticalaboratorios.com/wp-content/uploads/2024/01/20_soporte_universal.jpg" },
+      //{ nombre: "Matraz de destilación", img: "https://upload.wikimedia.org/wikipedia/commons/3/31/Distillation_flask.svg" }
+      { nombre: "Cristalizador", img: "https://www.labcomercial.com/31967-large_default/cristalizador-con-borde-190mm.jpg" },
+      { nombre: "Frasco lavador", img: "https://www.torreroymas.com/images/stories/virtuemart/product/frasco%20plastico%20lavador%201%20litro.jpg"},
+      { nombre: "Embudo de decantación", img: "https://www.labcomercial.com/37539-large_default/embudo-de-decantacion-500ml-con-llave-recta-ptfe.jpg"},
+      { nombre: "Mortero", img: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiPR1BOF88aYhrZFWVsFUkWXSpBNWF_Kf9MKPXmQhsW9_NZgYMZP7jdfNnV6bvQ0t70DEvqWcLdLwg89zYQ8SlNQDmIlBI-elI82y_V2CDW2PUxYkfSdOysCOrnO4xUV6_YaKhyy92d1AM/s1600/mortero+de+laboratorio.jpg"}
+    ];
+    const preguntasTotales=7;
+    let preguntaActual = 0;
+    let aciertos = 0;
+
+    function nuevaPregunta() {
+      if (preguntaActual >= preguntasTotales) {
+        mostrarResultado();
+        return;
+      }
+
+      document.getElementById("result").innerText = "";
+
+      const material = materiales[Math.floor(Math.random() * materiales.length)];
+      const opciones = [material.nombre];
+
+      // Generar 3 opciones falsas
+      while (opciones.length < 4) {
+        const falso = materiales[Math.floor(Math.random() * materiales.length)].nombre;
+        if (!opciones.includes(falso)) opciones.push(falso);
+      }
+
+      // Mezclar opciones
+      opciones.sort(() => Math.random() - 0.5);
+
+      document.getElementById("question-number").innerText = `Pregunta ${preguntaActual + 1} de ${preguntasTotales}`;
+      document.getElementById("material-img").src = material.img;
+
+      const opcionesDiv = document.getElementById("options");
+      opcionesDiv.innerHTML = "";
+      opciones.forEach(opcion => {
+        const btn = document.createElement("button");
+        btn.classList.add("option");
+        btn.textContent = opcion;
+        btn.onclick = () => {
+          if (opcion === material.nombre) {
+            aciertos++;
+            document.getElementById("result").innerText = "✅ ¡Correcto!";
+          } else {
+            document.getElementById("result").innerText = `❌ Incorrecto. Era: ${material.nombre}`;
+          }
+          preguntaActual++;
+          setTimeout(nuevaPregunta, 1000);
+        };
+        opcionesDiv.appendChild(btn);
+      });
+    }
+
+    function mostrarResultado() {
+      const contenedor = document.getElementById("quiz-container");
+      contenedor.innerHTML = `
+        <h2>Resultados del cuestionario</h2>
+        <p>Has acertado ${aciertos} de ${preguntasTotales} preguntas.</p>
+        <p>Porcentaje de acierto: ${(aciertos / 5 * 100).toFixed(0)}%</p>
+        <button onclick="location.reload()">Volver a jugar</button>
+      `;
+    }
+
+    nuevaPregunta();
+  </script>
+
+</body>
+</html>
+
