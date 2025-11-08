@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pictogramas CLP</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: #f2f6fa;
+      margin: 0;
+      padding: 20px;
+    }
+    #quiz-container {
+      background: white;
+      border-radius: 15px;
+      max-width: 600px;
+      margin: 50px auto;
+      padding: 20px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+    #enunciado {
+      background: black;
+      color: white;
+      border-radius: 15px;
+      max-width: 600px;
+      margin: 50px auto;
+      padding: 20px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+    img {
+      width: 150px;
+      margin: 20px;
+    }
+    button {
+      display: block;
+      margin: 10px auto;
+      padding: 10px 20px;
+      font-size: 16px;
+      border-radius: 10px;
+      border: none;
+      background-color: #007BFF;
+      color: white;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    .option {
+      background-color: #e9ecef;
+      color: black;
+      width: 80%;
+    }
+    #result {
+      font-size: 1.2em;
+      margin-top: 20px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="quiz-container">
+    <h2>Preguntas de Pictogramas CLP</h2>
+    <div id="question-container">
+      <p id="question-number"></p>
+      <img id="pictogram" src="" alt="Pictograma CLP">
+      <div id="enunciado"><p>Selecciona la opción correcta</p></div>
+      <div id="options"></div>
+    </div>
+    <div id="result"></div>
+  </div>
+
+  <script>
+    const pictogramas = [
+      { nombre: "Explosivo", img: "https://echa.europa.eu/documents/10162/877877/explos.gif/cf20b4ba-4da3-42de-aabb-e7fee12a7cd6" },
+      { nombre: "Inflamable", img: "https://echa.europa.eu/documents/10162/877877/flamme.gif/8b7ee75e-f23d-4319-a14d-769b2044dc26" },
+      { nombre: "Comburente", img: "https://echa.europa.eu/documents/10162/877877/rondflam.gif/926f8acb-a34d-46bb-a7c6-3b5ce610a401" },
+      //{ nombre: "Gas a presión", img: "https://echa.europa.eu/documents/10162/877877/bottle.gif/7d9fa85b-9626-4777-9ae0-2ff464607ef4" },
+      { nombre: "Corrosivo", img: "https://echa.europa.eu/documents/10162/877877/acid_red.gif/7eccb5d4-d51d-4d82-8d36-74323eaf60c6" },
+      { nombre: "Toxicidad aguda", img: "https://echa.europa.eu/documents/10162/877877/skull.gif/987ec5c3-ed7c-47a8-84d3-b8bc2569c967" },
+      { nombre: "Peligro grave para la salud", img: "https://echa.europa.eu/documents/10162/877877/silhouete.gif/f7221596-4b51-4b72-8e08-d7d0cbccee6e" },
+      { nombre: "Peligro para la salud", img: "https://echa.europa.eu/documents/10162/877877/exclam.gif/79a7cc3d-1e8d-4d6d-b33c-a7cc39d07d05" },
+      { nombre: "Peligro para el medio ambiente", img: "https://echa.europa.eu/documents/10162/877877/Aquatic-pollut-red.gif/105f4e62-9860-4048-b9fd-f534b06af0e4" }
+    ];
+
+    let preguntaActual = 0;
+    let aciertos = 0;
+
+    function nuevaPregunta() {
+      if (preguntaActual >= 5) {
+        mostrarResultado();
+        return;
+      }
+
+      document.getElementById("result").innerText = "";
+
+      const pictograma = pictogramas[Math.floor(Math.random() * pictogramas.length)];
+      const opciones = [pictograma.nombre];
+
+      // Generar 3 opciones falsas
+      while (opciones.length < 4) {
+        const falso = pictogramas[Math.floor(Math.random() * pictogramas.length)].nombre;
+        if (!opciones.includes(falso)) opciones.push(falso);
+      }
+
+      // Mezclar opciones
+      opciones.sort(() => Math.random() - 0.5);
+
+      document.getElementById("question-number").innerText = `Pregunta ${preguntaActual + 1} de 5`;
+      document.getElementById("pictogram").src = pictograma.img;
+
+      const opcionesDiv = document.getElementById("options");
+      opcionesDiv.innerHTML = "";
+      opciones.forEach(opcion => {
+        const btn = document.createElement("button");
+        btn.classList.add("option");
+        btn.textContent = opcion;
+        btn.onclick = () => {
+          if (opcion === pictograma.nombre) {
+            aciertos++;
+            document.getElementById("result").innerText = "✅ ¡Correcto!";
+          } else {
+            document.getElementById("result").innerText = `❌ Incorrecto. Era: ${pictograma.nombre}`;
+          }
+          preguntaActual++;
+          setTimeout(nuevaPregunta, 1000);
+        };
+        opcionesDiv.appendChild(btn);
+      });
+    }
+
+    function mostrarResultado() {
+      const contenedor = document.getElementById("quiz-container");
+      contenedor.innerHTML = `
+        <h2>Resultados del Quiz</h2>
+        <p>Has acertado ${aciertos} de 5 preguntas.</p>
+        <p>Porcentaje de acierto: ${(aciertos / 5 * 100).toFixed(0)}%</p>
+        <button onclick="location.reload()">Volver a jugar</button>
+      `;
+    }
+
+    nuevaPregunta();
+  </script>
+
+</body>
+</html>
+
