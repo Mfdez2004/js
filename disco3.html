@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Disco con lanzamiento, rebotes y frenado en el suelo</title>
+<style>
+  body {
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    background: #eef;
+  }
+
+  button {
+    margin-bottom: 10px;
+    padding: 10px 20px;
+    font-size: 16px;
+  }
+
+  .contenedor {
+    width: 600px;
+    height: 500px;
+    position: relative;
+    background: #dde;
+    border: 2px solid #99a;
+    overflow: hidden;
+  }
+
+  .disco {
+    width: 200px;
+    height: 200px;
+    background: #3498db;
+    border-radius: 50%;
+    position: absolute;
+    top: 250px;
+    left: 300px;
+    transform: translate(-50%, -50%);
+    transform-origin: 50% 50%;
+  }
+
+  .cilindroBase,
+  .cilindroLibre {
+    width: 40px;
+    height: 40px;
+    background: #e74c3c;
+    border-radius: 50%;
+    position: absolute;
+  }
+
+  .cilindroBase {
+    top: 50%;
+    left: 100%;
+    transform: translate(-50%, -50%);
+  }
+
+  .cilindroLibre {
+    display: none;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+
+<button id="soltarBtn">Soltar cilindro</button>
+<button id="resetBtn">Reiniciar</button>
+
+<div class="contenedor" id="zona">
+  <div class="disco" id="disco">
+    <div class="cilindroBase" id="cilindroBase"></div>
+  </div>
+  <div class="cilindroLibre" id="cilindroLibre"></div>
+</div>
+
+<script>
+const disco  = document.getElementById("disco");
+const base   = document.getElementById("cilindroBase");
+const libre  = document.getElementById("cilindroLibre");
+const zona   = document.getElementById("zona");
+const btnSoltar = document.getElementById("soltarBtn");
+const btnReset  = document.getElementById("resetBtn");
+
+// Parámetros físicos
+const g = 0.3;   
+const e = 0.7;        // coeficiente de restitución
+const mu = 0.02;      // rozamiento en el suelo
+const vmin = 0.3;     // umbral para detenerse
+
+let angulo = 0;
+let girando = true;
+
+let x = 0, y = 0;
+let vx = 0, vy = 0;
+
+btnSoltar.onclick = () => {
+  if (!girando) return;
+
+  girando = false;
+
+  // posición inicial del cilindro
+  const rectBase = base.getBoundingClientRect();
+  const rectZona = zona.getBoundingClientRect();
+
+  x = rectBase.left - rectZona.left;
+  y = rectBase.top  - rectZona.top;
+
+  // velocidad tangencial
+  const v = 0.04;
+  const angRad = angulo * Math.PI / 180;
+
+  vx = -Math.sin(angRad) * v * 200;
+  vy =  Math.cos(angRad) * v * 200;
+
+  libre.style.left = x + "px";
+  libre.style.top  = y + "px";
+  libre.style.display = "block";
+  base.style.display = "none";
+};
+
+// Reinicio total
+btnReset.onclick = () => {
+  angulo = 0;
+  girando = true;
+
+  base.style.display = "block";
+  libre.style.display = "none";
+
+  disco.style.transform = `translate(-50%, -50%) rotate(0deg)`;
+};
+
+function animar() {
+
+  if (girando) {
+    angulo += 1;
+    disco.style.transform = `translate(-50%, -50%) rotate(${angulo}deg)`;
+  } else {
+
+    // Física general
+    vy += g; // gravedad
+
+    x += vx;
+    y += vy;
+
+    const maxX = zona.clientWidth  - libre.clientWidth;
+    const maxY = zona.clientHeight - libre.clientHeight;
+
+    // Rebotes horizontales
+    if (x <= 0) {
+      x = 0;
+      vx = -vx * e;
+    }
+    if (x >= maxX) {
+      x = maxX;
+      vx = -vx * e;
+    }
+
+    // Rebotes verticales
+    if (y <= 0) {
+      y = 0;
+      vy = -vy * e;
+    }
+
+    // Suelo: y >= maxY
+    if (y >= maxY) {
+      y = maxY;
+
+      // rebote vertical con pérdida
+      vy = -vy * e;
+
+      // Si está prácticamente en el suelo y vy es muy pequeña,
+      // consideramos que rueda por el suelo y aplicamos rozamiento.
+      if (Math.abs(vy) < 1) {
+        vy = 0; // ya no salta, ahora rueda
+
+        // aplicar rozamiento al rodar
+        vx *= (1 - mu);
+
+        // si la velocidad es muy pequeña, se detiene
+        if (Math.abs(vx) < vmin) {
+          vx = 0;
+        }
+      }
+    }
+
+    libre.style.left = x + "px";
+    libre.style.top  = y + "px";
+  }
+
+  requestAnimationFrame(animar);
+}
+
+animar();
+</script>
+
+</body>
+</html>
+
+

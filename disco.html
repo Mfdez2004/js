@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Disco con cilindro pegado rotando</title>
+<style>
+  body {
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #eee;
+  }
+
+  .contenedor {
+    width: 300px;
+    height: 300px;
+    position: relative;
+  }
+
+  .disco {
+    width: 200px;
+    height: 200px;
+    background: #3498db;
+    border-radius: 50%;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    transform-origin: 50% 50%;
+  }
+
+  /* El círculo que representa la base del cilindro */
+  .cilindroBase {
+    position: absolute;
+    width: 40px;   /* diámetro: 1/5 del disco (200/5=40) */
+    height: 40px;
+    background: #e74c3c;
+    border-radius: 50%;
+    /* lo colocamos en el borde derecho del disco */
+    top: 50%;
+    left: 100%;
+    transform: translate(-50%, -50%);
+  }
+</style>
+</head>
+<body>
+
+<div class="contenedor">
+  <div class="disco" id="disco">
+    <!-- La base del cilindro está dentro del disco y pegada al borde -->
+    <div class="cilindroBase"></div>
+  </div>
+</div>
+
+<script>
+  const disco = document.getElementById("disco");
+  let angulo = 0;
+
+  function animar() {
+    angulo += 1;
+    disco.style.transform = `translate(-50%, -50%) rotate(${angulo}deg)`;
+    requestAnimationFrame(animar);
+  }
+
+  animar();
+</script>
+
+</body>
+</html>
+
