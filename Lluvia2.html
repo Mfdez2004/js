@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Ventana de edificio con líneas animadas</title>
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+        /* Fondo: fachada de edificio */
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        background-color: #fff; /* fallback color si no carga la imagen */
+  }
+
+    label {
+        font-size: 16px;
+    }
+
+    /* Marco de ventana de edificio */
+    #ventana {
+        width: 70vw;
+        height: 70vh;
+        background: #888;
+        border: 25px solid #7a7a7a; /* marco grueso */
+        border-bottom: 35px solid #6d6d6d; /* alféizar ligeramente más grande */
+        border-radius: 6px;
+        box-shadow: 0 0 30px rgba(0,0,0,0.3);
+        position: relative;
+        overflow: hidden;
+    }
+
+    /* “Cristal” interior */
+    #rectangulo {
+        width: 100%;
+        height: 100%;
+        background: url("https://concepto.de/wp-content/uploads/2018/08/Picos-de-montana-1536x765.jpg") center center no-repeat;
+        background-size: cover;
+        position: relative;
+        overflow: hidden;
+    }
+
+    /* Simulación del brillo del cristal */
+    #rectangulo::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 50%;
+        height: 100%;
+        background: rgba(255,255,255,0.08);
+        transform: skewX(-20deg);
+        pointer-events: none;
+    }
+
+    /* Contenedor para la ROTACIÓN */
+    .contenedor-linea {
+        position: absolute;
+        transform-origin: bottom;
+    }
+
+    /* Línea que se encoge */
+    .linea {
+        width: 2px;
+        background: white;
+        transform-origin: bottom;
+        animation: encoger 0.7s forwards;
+    }
+
+    @keyframes encoger {
+        from { transform: scaleY(1); opacity: 1; }
+        to   { transform: scaleY(0); opacity: 0; }
+    }
+</style>
+</head>
+<body>
+
+<label for="angulo">Velocidad del viento: <span id="valorAngulo"></span></label>
+<input type="range" id="angulo" min="0" max="45" value="0">
+<br>
+<div id="ventana">
+    <div id="rectangulo"></div>
+</div>
+
+<script>
+const rect = document.getElementById("rectangulo");
+const slider = document.getElementById("angulo");
+const valorAngulo = document.getElementById("valorAngulo");
+
+let lineasActivas = 0;
+const LIMITE_LINEAS = 50;
+
+slider.addEventListener("input", () => {
+    //valorAngulo.textContent = slider.value;
+});
+
+function crearLinea() {
+    if (lineasActivas >= LIMITE_LINEAS) return;
+
+    const altoRect = rect.clientHeight;
+    const altoLinea = altoRect * 0.1;
+
+    const cont = document.createElement("div");
+    cont.className = "contenedor-linea";
+
+    const linea = document.createElement("div");
+    linea.className = "linea";
+    linea.style.height = altoLinea + "px";
+
+    cont.appendChild(linea);
+
+    const angulo = slider.value;
+    cont.style.transform = `rotate(${angulo}deg)`;
+
+    const x = Math.random() * rect.clientWidth;
+    const y = Math.random() * (altoRect - altoLinea);
+
+    cont.style.left = x + "px";
+    cont.style.top = y + "px";
+
+    rect.appendChild(cont);
+    lineasActivas++;
+
+    setTimeout(() => {
+        cont.remove();
+        lineasActivas--;
+    }, 700);
+}
+
+function generarLoteDesincronizado() {
+    const cantidad = Math.floor(Math.random() * 16) + 10;
+
+    for (let i = 0; i < cantidad; i++) {
+        const retraso = Math.random() * 500;
+
+        setTimeout(() => {
+            if (lineasActivas < LIMITE_LINEAS) crearLinea();
+        }, retraso);
+    }
+}
+
+setInterval(generarLoteDesincronizado, 500);
+</script>
+
+</body>
+</html>
+
