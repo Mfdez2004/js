@@ -110,8 +110,8 @@ btnSoltar.onclick = () => {
   const v = 0.04;
   const angRad = angulo * Math.PI / 180;
 
-  vx = -Math.sin(angRad) * v * 200;
-  vy =  Math.cos(angRad) * v * 200;
+  vx = Math.sin(angRad) * v * 200;
+  vy = -Math.cos(angRad) * v * 200;
 
   libre.style.left = x + "px";
   libre.style.top  = y + "px";
@@ -133,7 +133,7 @@ btnReset.onclick = () => {
 function animar() {
 
   if (girando) {
-    angulo += 1;
+    angulo -= 1;
     disco.style.transform = `translate(-50%, -50%) rotate(${angulo}deg)`;
   } else {
 
