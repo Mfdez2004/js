@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Handsontable - Conversión e Inversión de Parábola</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable@14.3/dist/handsontable.full.min.css">
+</head>
+<body style="font-family: Arial, sans-serif; margin: 20px;">
+
+    <h1>Tabla de Datos Científicos</h1>
+
+    <div class="controls" style="margin-bottom: 10px;padding: 10px;border: 1px solid #ccc;border-radius: 5px;">
+        <h3 style="margin-top: 0; border-bottom: 1px dashed #ddd; padding-bottom: 5px;">1. Conversión de Unidades (cm ↔ m)</h3>
+        <label style="margin-right: 20px;display: block;margin-bottom: 5px;">
+            <input type="checkbox" id="convertCol1"> Convertir **Distancia 1** de cm a m
+        </label>
+
+        <h3 style="margin-top: 0; border-bottom: 1px dashed #ddd; padding-bottom: 5px;">2. Inversión de Parábola (Reflexión Vertical)</h3>
+        <label style="margin-right: 20px;display: block;margin-bottom: 5px;">
+            <input type="checkbox" id="invertCol1"> Invertir **Distancia 1** (Y' = Ymax - Y)
+        </label>
+        <h3 style="margin-top: 0; border-bottom: 1px dashed #ddd; padding-bottom: 5px;">2. Ajuste de Curva</h3>
+        <label style="margin-right: 20px;display: block;margin-bottom: 5px;">
+            <input type="checkbox" id="fitCurve"> **Ajustar a y = a·x²** y mostrar $R^2$
+        </label>
+        
+        <div id="results"></div>
+        <p>*El gráfico siempre representa la **Columna 0 (Tiempo)** vs la **Columna 1 (Distancia 1)**.</p>
+    </div>
+        <p>
+            *Pega tus datos (Tiempo, Distancia 1, Distancia 2) y aplica las transformaciones necesarias.
+        </p>
+<p>*El gráfico siempre representa la **Columna 1 (Tiempo)** vs la **Columna 2 (Distancia 1)**.</p>
+    </div>
+
+    <div id="hot-container" styele="width: 50%; height: 400px;margin-top: 15px;"></div>
+        <div id="chart-container" style="width: 50%; height: 400px;">
+            <canvas id="parabolaChart"></canvas>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/handsontable@14.3/dist/handsontable.full.min.js"></script>
+
+    <script>
+        // --- CONSTANTES Y ESTADO ---
+        const COL_INDEX_1 = 1; // Índice para Distancia 1
+        const COL_INDEX_2 = 2; // Índice para Distancia 2
+        const COL_TIME = 0; // Columna de Tiempo (Eje X)
+        const COL_DISTANCE_1 = 1; // Columna de Distancia 1 (Eje Y)
+        const COL_DISTANCE_2 = 2; // Columna de Distancia 2
+        let Ymaxima=0;
+        let listaY, Yinv=[];
+        let parabolaChart; // Variable global para la instancia de Chart.js
+        
+        let currentColHeaders = ['Tiempo (s)', 'Distancia 1 (cm)'];
+        
+        // Datos iniciales para que la tabla no esté vacía
+        const initialData = [[],[]];
+
+        let hot; 
+
+        // 4. Referencias a elementos del DOM
+        const container = document.getElementById('hot-container');
+        const canvas = document.getElementById('parabolaChart');
+        const resultsDiv = document.getElementById('results');
+
+        // Checkboxes de Conversión
+        const convertCheckbox1 = document.getElementById('convertCol1');
+        const convertCheckbox2 = document.getElementById('convertCol2');
+
+        // Checkboxes de Inversión
+        const invertCheckbox1 = document.getElementById('invertCol1');
+        const invertCheckbox2 = document.getElementById('invertCol2');
+        const fitCurveCheckbox = document.getElementById('fitCurve');
+
+/**
+         * Calcula el coeficiente 'a' y R^2 para la regresión y = a*x^2.
+         * @param {Array<number>} xData - Datos del eje X (Tiempo).
+         * @param {Array<number>} yData - Datos del eje Y (Distancia 1).
+         * @returns {{a: number, r2: number, minX: number, maxX: number}} Resultados de la regresión.
+         */
+        function calculateRegression(xData, yData) {
+            let sum_x2_y = 0;
+            let sum_x2_sq = 0;
+            let sum_y = 0;
+            let count = 0;
+            let minX = Infinity;
+            let maxX = -Infinity;
+
+            // 1. Calcular sumatorias y encontrar el rango X
+            for (let i = 0; i < xData.length; i++) {
+                const x = xData[i];
+                const y = yData[i];
+
+                if (typeof x === 'number' && !isNaN(x) && typeof y === 'number' && !isNaN(y)) {
+                    const x2 = x * x;
+                    sum_x2_y += x2 * y;
+                    sum_x2_sq += x2 * x2;
+                    sum_y += y;
+                    count++;
+                    if (x < minX) minX = x;
+                    if (x > maxX) maxX = x;
+                }
+            }
+
+            if (count < 2 || sum_x2_sq === 0) {
+                return { a: 0, r2: 0, minX: 0, maxX: 0 };
+            }
+
+            // Coeficiente 'a' de la regresión
+            const a = sum_x2_sq !== 0 ? sum_x2_y / sum_x2_sq : 0;
+
+            // 2. Calcular R^2
+            const y_mean = sum_y / count;
+            let ss_total = 0;
+            let ss_residual = 0;
+
+            for (let i = 0; i < xData.length; i++) {
+                const x = xData[i];
+                const y = yData[i];
+
+                if (typeof x === 'number' && !isNaN(x) && typeof y === 'number' && !isNaN(y)) {
+                    const y_hat = a * x * x;
+                    ss_total += Math.pow(y - y_mean, 2);
+                    ss_residual += Math.pow(y - y_hat, 2);
+                }
+            }
+            
+            const r2 = ss_total !== 0 ? 1 - (ss_residual / ss_total) : 0;
+            
+            return { a, r2, minX, maxX };
+        }
+
+function updateChart() {
+            // 1. Extraer los datos de Handsontable
+            const timeData = hot.getData(0, COL_TIME, hot.countRows() - 1, COL_TIME).flat();
+            const distanceData = hot.getData(0, COL_DISTANCE_1, hot.countRows() - 1, COL_DISTANCE_1).flat();
+            
+            // 2. Crear el formato de puntos {x: T, y: D1} requerido por Chart.js
+            const chartDataPoints = timeData.map((t, index) => {
+                const d = distanceData[index];
+                // Asegurar que son números válidos
+                if (typeof t === 'number' && !isNaN(t) && typeof d === 'number' && !isNaN(d)) {
+                    return { x: t, y: d };
+                }
+                return null;
+            }).filter(p => p !== null);
+
+            // Obtener el título dinámico
+            const showFit = fitCurveCheckbox.checked;
+            const yAxisHeader = currentColHeaders[COL_DISTANCE_1];
+            const xAxisHeader = currentColHeaders[COL_TIME];
+            
+// 1. Obtener los resultados de la regresión
+            const { a, r2, minX, maxX } = calculateRegression(timeData, distanceData);
+
+            // 2. Crear los puntos de la línea de regresión si está marcada
+            const regressionPoints = [];
+            let regressionEquation = '';
+            let r2Value = '';
+
+            if (showFit) {
+                const numSteps = 50;
+                // Generar puntos desde minX hasta maxX para dibujar la curva
+                for (let i = 0; i <= numSteps; i++) {
+                    const x_step = minX + (i / numSteps) * (maxX - minX);
+                    const y_step = a * x_step * x_step;
+                    regressionPoints.push({ x: x_step, y: y_step });
+                }
+                
+                // Formatear resultados para visualización
+                regressionEquation = `Función: y = ${a.toFixed(4)}·x²`;
+                r2Value = `R²: ${r2.toFixed(4)}`;
+            }
+            
+            // 3. Actualizar la DIV de resultados
+            resultsDiv.innerHTML = showFit ? `
+                ${regressionEquation} <br> 
+                ${r2Value}` 
+                : '';
+
+            // 4. Actualizar la instancia de Chart.js
+            if (parabolaChart) {
+                // Actualizar Nube de Puntos
+                parabolaChart.data.datasets[0].data = chartDataPoints;
+                
+                // Gestionar la Línea de Regresión
+                // Si el dataset de regresión no existe, crearlo
+                if (parabolaChart.data.datasets.length < 2) {
+                    parabolaChart.data.datasets.push({
+                        label: 'Ajuste',
+                        data: regressionPoints,
+                        borderColor: 'rgb(255, 99, 132)', // Rojo para la línea
+                        backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                        borderWidth: 2,
+                        pointRadius: 0, // No mostrar puntos individuales
+                        showLine: true,
+                        fill: false,
+                        tension: 0 // Línea recta (aunque es una curva, Chart.js la dibuja bien)
+                    });
+                } else {
+                    parabolaChart.data.datasets[1].data = regressionPoints;
+                    // Mostrar u ocultar la línea de regresión
+                    parabolaChart.data.datasets[1].hidden = !showFit;
+                }
+
+                // Actualizar títulos y renderizar
+                parabolaChart.options.scales.x.title.text = xAxisHeader;
+                parabolaChart.options.scales.y.title.text = yAxisHeader;
+                parabolaChart.options.plugins.title.text = `Relación: ${xAxisHeader} vs ${yAxisHeader}`;
+
+                parabolaChart.update();
+            }
+        }
+        function initializeChart() {
+            parabolaChart = new Chart(canvas, {
+                type: 'scatter', // Scatter chart es ideal para nubes de puntos científicos
+                data: {
+                    datasets: [{
+                        label: currentColHeaders[COL_DISTANCE_1],
+                        data: [], // Se llenará con updateChart
+                        backgroundColor: 'rgba(54, 162, 235, 0.8)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1,
+                        pointRadius: 3 // Tamaño del punto
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            position: 'bottom',
+                            title: {
+                                display: true,
+                                text: currentColHeaders[COL_TIME]
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: currentColHeaders[COL_DISTANCE_1]
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        title: {
+                            display: true,
+                            text: 'Relación: ' + currentColHeaders[COL_TIME] + ' vs ' + currentColHeaders[COL_DISTANCE_1]
+                        }
+                    }
+                }
+            });
+            updateChart(); // Llenar con datos iniciales
+        }
+        // --- FUNCIONES DE MANIPULACIÓN DE DATOS ---
+
+        /**
+         * Realiza la inversión vertical de la parábola: Y' = Ymax - Y.
+         * Esta operación es auto-reversible.
+         * @param {number} colIndex - Índice de la columna a invertir.
+         */
+        function invertParabola(colIndex) {
+            const rowCount = hot.countRows();
+            let yValues = [];
+            
+            
+            // 1. Obtener todos los valores actuales de la columna
+            for (let i = 0; i < rowCount; i++) {
+                let val = hot.getDataAtCell(i, colIndex);
+                if (typeof val === 'number' && !isNaN(val)) {
+                    yValues.push(val);
+                }
+            }
+            listaY=yValues;
+            
+            // 2. Encontrar el valor máximo de Y actual (Ymax)
+            const Ymax = Math.max(...yValues);
+            Ymaxima=Ymax;
+            // 3. Aplicar la transformación Y' = Ymax - Y y actualizar la tabla
+            hot.batch(() => {
+                for (let i = 0; i < rowCount; i++) {
+                    let y = hot.getDataAtCell(i, colIndex);
+                    if (typeof y === 'number' && !isNaN(y)) {
+                        hot.setDataAtCell(i, colIndex, Ymax - y, 'parabolaInversion');
+                    }
+                }
+            });
+            for (let i = 0; i < rowCount; i++) {
+                let y = Ymax-listaY[i];
+                Yinv.push(y);
+            }
+
+            // 4. Actualizar el encabezado para indicar el estado
+            let currentHeader = currentColHeaders[colIndex];
+            if (currentHeader.includes('(Invertida)')) {
+                currentColHeaders[colIndex] = currentHeader.replace(' (Invertida)', '');
+            } else {
+                currentColHeaders[colIndex] += ' (Invertida)';
+            }
+            hot.updateSettings({ colHeaders: currentColHeaders });
+
+            hot.render();
+            updateChart(); // ¡ACTUALIZAR GRÁFICO! 
+        }
+
+        /**
+         * Convierte los datos de una columna entre cm y m.
+         * @param {number} colIndex - Índice de la columna a convertir (1 o 2).
+         * @param {boolean} toMeters - Si es true, convierte de cm a m (divide por 100). Si es false, de m a cm (multiplica por 100).
+         */
+        function convertUnits(colIndex, toMeters) {
+            const factor = toMeters ? 0.01 : 100; // 0.01 para cm -> m, 100 para m -> cm
+            const newUnit = toMeters ? 'm' : 'cm';
+
+            // 1. Actualizar el encabezado de la columna (preservando el estado de Inversión)
+            currentColHeaders[colIndex] = currentColHeaders[colIndex].replace(/\((cm|m)\)/i, `(${newUnit})`);
+            
+            // 2. Recorrer y actualizar cada celda
+            const rowCount = hot.countRows();
+            hot.batch(() => {
+                for (let i = 0; i < rowCount; i++) {
+                    let cellValue = hot.getDataAtCell(i, colIndex);
+                    if (typeof cellValue === 'number' && !isNaN(cellValue)) {
+                        hot.setDataAtCell(i, colIndex, cellValue * factor, 'unitConversion');
+                    }
+                }
+            });
+            hot.updateSettings({ colHeaders: currentColHeaders });
+            hot.render();
+            updateChart(); // ¡ACTUALIZAR GRÁFICO!
+        }
+
+        // --- INICIALIZACIÓN Y EVENT LISTENERS ---
+
+        function initializeHandsontable() {
+            const hotSettings = {
+                data: initialData,
+                rowHeaders: true, 
+                colHeaders: currentColHeaders,
+                contextMenu: true,
+                licenseKey: 'non-commercial-and-evaluation',
+                copyPaste: true, 
+                pasteMode: 'shift_table', 
+                fragmentDelimiter: '\t', 
+                columns: [
+                    { type: 'numeric', numericFormat: { pattern: '0.000' } }, 
+                    { type: 'numeric', numericFormat: { pattern: '0.000' } }, 
+                ],
+                // 1. Hook para la edición manual (escribir en celdas)
+                afterChange: function(changes, source) {
+                    if (source === 'edit') {
+                         updateChart();
+                    }
+                },
+                
+                // 2. ¡NUEVO HOOK! Se dispara después de que Handsontable finaliza el pegado de datos
+                afterPaste: function(data, coords) {
+                    updateChart();
+                }
+            };
+            
+            hot = new Handsontable(container, hotSettings);
+        }
+
+        // 6. Asignar Event Listeners
+        
+        // Conversión cm/m
+        convertCheckbox1.addEventListener('change', (event) => {
+            convertUnits(COL_INDEX_1, event.target.checked);
+        });
+
+
+        // Inversión de Parábola
+        invertCheckbox1.addEventListener('change', () => {
+            invertParabola(COL_INDEX_1);
+        });
+
+        fitCurveCheckbox.addEventListener('change', updateChart);
+
+        // 7. Iniciar el proyecto
+        initializeHandsontable();
+        initializeChart();
+    </script>
+</body>
+</html>
