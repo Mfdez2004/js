@@ -68,8 +68,15 @@
             
             const regex = / +/g;
             const reemplazo = '\t';
-            
-            return texto.replace(regex, reemplazo);
+            const regex2 = /(\r?\n){2,}/g;
+
+            // El reemplazo es un único salto de línea (\n). 
+            // Handsontable y la mayoría de los sistemas modernos manejan bien solo el \n.
+            const reemplazo2 = '\n';
+            let txt=texto;
+            txt=txt.replace(regex, reemplazo);
+            return txt.replace(regex2, reemplazo2);
+
         }
 
         // --- MANEJO DEL DOM Y EVENTOS ---
