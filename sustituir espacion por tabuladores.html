@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sustituir Espacios por Tabuladores</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            color: #333;
+        }
+        #dataInput {
+            width: 95%;
+            height: 250px;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            font-family: monospace; /* Fuente monoespaciada para ver mejor el efecto del tabulador */
+        }
+        #convertButton {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        #convertButton:hover {
+            background-color: #0056b3;
+        }
+        p {
+            margin-top: 20px;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Limpiador de Datos: Espacios a Tabuladores</h1>
+
+    <p>Pega tus datos aquí (ejemplo: 'Tiempo  Distancia  Altura').</p>
+    
+    <textarea id="dataInput" placeholder="Pega los datos separados por espacios aquí..."></textarea>
+    
+    <button id="convertButton">Sustituir Espacios por Tabuladores (\t)</button>
+
+    <p>Una vez convertido, puedes copiar el texto y pegarlo directamente en programas de hoja de cálculo (Excel, Google Sheets) o en la tabla Handsontable.</p>
+
+    <script>
+        // --- FUNCIÓN DE SUSTITUCIÓN (Usando Expresión Regular) ---
+        
+        /**
+         * Reemplaza una secuencia de uno o más espacios por un tabulador (\t)
+         * en la cadena de texto proporcionada.
+         * @param {string} texto - La cadena de texto de entrada.
+         * @returns {string} El texto con las sustituciones realizadas.
+         */
+        function reemplazarEspaciosPorTabulador(texto) {
+            // Expresión regular: / +/g
+            // / / : Coincide con un espacio literal.
+            // +   : Coincide con una o más repeticiones del espacio.
+            // g   : Flag global, para reemplazar todas las ocurrencias.
+            
+            const regex = / +/g;
+            const reemplazo = '\t';
+            
+            return texto.replace(regex, reemplazo);
+        }
+
+        // --- MANEJO DEL DOM Y EVENTOS ---
+
+        const dataInput = document.getElementById('dataInput');
+        const convertButton = document.getElementById('convertButton');
+
+        convertButton.addEventListener('click', () => {
+            // 1. Obtener el texto actual del textarea
+            let textoOriginal = dataInput.value;
+            
+            // 2. Aplicar la transformación
+            let textoConvertido = reemplazarEspaciosPorTabulador(textoOriginal);
+            
+            // 3. Opcional pero útil: Eliminar los espacios de inicio/fin de línea
+            //    que podrían estropear el pegado en Excel
+            textoConvertido = textoConvertido.trim();
+
+            // 4. Devolver el texto transformado al textarea
+            dataInput.value = textoConvertido;
+
+            // 5. Retroalimentación visual (seleccionar el texto para copiar fácilmente)
+            dataInput.select();
+            
+            alert('¡Conversión completada! El texto ahora usa tabuladores (\t).');
+        });
+
+    </script>
+</body>
+</html>
