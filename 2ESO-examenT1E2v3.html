@@ -1,91 +1,23 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <script>
-  // Configuración de MathJax (Opcional, pero recomendada)
-  window.MathJax = {
-    tex: {
-      inlineMath: [['$', '$'], ['\\(', '\\)']]
-    },
-    svg: {
-      fontCache: 'global'
-    }
-  };
-</script>
-<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Corrector Automático FQ - Examen 3</title>
+    <title>Corrector Automático - Examen FQ 2º ESO</title>
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 20px;
-            background-color: #f4f7f6;
-            color: #333;
-        }
-        .container {
-            max-width: 900px;
-            margin: auto;
-            background: #fff;
-            padding: 25px;
-            border-radius: 10px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-        h1, h2 {
-            color: #007bff;
-            border-bottom: 2px solid #007bff;
-            padding-bottom: 5px;
-            margin-bottom: 20px;
-        }
-        .item-correccion {
-            background-color: #eef;
-            border: 1px solid #ccc;
-            padding: 15px;
-            margin-bottom: 20px;
-            border-radius: 8px;
-        }
-        .item-correccion h3 {
-            margin-top: 0;
-            color: #0056b3;
-        }
-        .subcriterio {
-            margin-left: 20px;
-            padding: 5px 0;
-            display: flex;
-            align-items: center;
-        }
-        .subcriterio input[type="checkbox"] {
-            margin-right: 10px;
-            transform: scale(1.2);
-            accent-color: #28a745;
-        }
-        .resultado {
-            margin-top: 30px;
-            padding: 20px;
-            border: 3px solid #28a745;
-            background-color: #d4edda;
-            color: #155724;
-            border-radius: 8px;
-        }
-        .resultado h2 {
-            border-bottom-color: #155724;
-            color: #155724;
-        }
-        .ce-score {
-            margin-top: 10px;
-            font-weight: bold;
-        }
-        .ce-score span {
-            float: right;
-            color: #dc3545;
-        }
-        .nota-final {
-            font-size: 1.8em;
-            font-weight: bold;
-            text-align: center;
-            margin-top: 15px;
-            color: #007bff;
-        }
+        /* Estilos básicos para mejorar la visualización de la rúbrica */
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); }
+        h1, h2, h3 { color: #333; }
+        hr { border: 0; height: 1px; background: #ccc; margin: 20px 0; }
+        .item-correccion { border: 1px solid #ddd; padding: 15px; margin-bottom: 20px; border-radius: 5px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+        th:last-child, td:last-child { text-align: left;  }
+        .subcriterio { margin: 5px 0; padding: 3px; }
+        .nota-final { font-size: 1.5em; font-weight: bold; color: #007bff; margin-top: 10px; }
+        .ce-score { margin-bottom: 5px; }
+        center input[type="checkbox"] { transform: scale(1.5); }
     </style>
 </head>
 <body>
@@ -96,93 +28,181 @@
     
     <div id="examen">
         
+        <script>
+            // Función para generar la cabecera de la tabla que se usa en todas las preguntas
+            function generateTableHeader() {
+                return `<thead><tr><th>Bien</th><th>Regular</th><th>Mal</th><th>Descripción</th></tr></thead>`;
+            }
+        </script>
+
+        <script>
+            // Genera el HTML para una fila, calculando la puntuación de Regular (mitad)
+            function generateTableRow(name, puntosBien, descripcion) {
+                const puntosRegular = (puntosBien / 2).toFixed(3); // Mitad de los puntos
+                return `
+                    <tr>
+                        <td><center><input type="checkbox" data-puntos="${puntosBien}" name="${name}"></center></td>
+                        <td><center><input type="checkbox" data-puntos="${puntosRegular}" name="${name}"></center></td>
+                        <td><center><input type="checkbox" data-puntos="0" name="${name}"></center></td>
+                        <td>${descripcion}</td>
+                    </tr>
+                `;
+            }
+        </script>
+
         <div class="item-correccion" data-item="1" data-ce-contrib="C.E. 2.2" data-ce-peso="1.0">
             <h3>1. Cambios de Estado (Concepto) (1.0 pto)</h3>
             <table>
-                <thead>
-                    <tr>
-                        <th>Bien</th>
-                        <th>Regular</th>
-                        <th>Mal</th>
-                        <th>Descripción</th>
-                    </tr>
-                </thead>
+                <script>document.write(generateTableHeader());</script>
                 <tbody>
-                    <tr>
-                        <div class="subcriterio"><td><input type="checkbox" data-puntos="0.5"></td><td><input type="checkbox" data-puntos="0.25"></td><td><input type="checkbox" data-puntos="0"></td><td>Define cambio de estado (variación de estado de agregación) (0.5 p)</td></div>
-                        <div class="subcriterio"><td><input type="checkbox" data-puntos="0.5"></td><td><input type="checkbox" data-puntos="0.25"></td><td><input type="checkbox" data-puntos="5"></td><td><input type="checkbox" data-puntos="0.5"> Menciona la causa (variación de Temperatura o Presión) (0.5 p)</td></div>
-                    </tr>
-                </tbody>                    
+                    <script>
+                        document.write(generateTableRow("criterio1_1", 0.5, "Define cambio de estado (variación de estado de agregación) (0.5 p)"));
+                        document.write(generateTableRow("criterio1_2", 0.5, "Menciona la causa (variación de Temperatura o Presión) (0.5 p)"));
+                    </script>
+                </tbody>
             </table>
+            <p>Puntuación Parcial: <span id="resultado_1">0.00</span> / 1.00</p>
         </div>
 
         <div class="item-correccion" data-item="2" data-ce-contrib="C.E. 2.1" data-ce-peso="1.0">
             <h3>2. Masa: Definición y Medida (1.0 pto)</h3>
-            <div class="subcriterio"><input type="checkbox" data-puntos="0.4"> Define la masa (0.4 p)</div>
-            <div class="subcriterio"><input type="checkbox" data-puntos="0.3"> Indica la unidad SI (kg) (0.3 p)</div>
-            <div class="subcriterio"><input type="checkbox" data-puntos="0.3"> Indica el instrumento de medida (Balanza) (0.3 p)</div>
+            <table>
+                <script>document.write(generateTableHeader());</script>
+                <tbody>
+                    <script>
+                        document.write(generateTableRow("criterio2_1", 0.4, "Define la masa (0.4 p)"));
+                        document.write(generateTableRow("criterio2_2", 0.3, "Indica la unidad SI (kg) (0.3 p)"));
+                        document.write(generateTableRow("criterio2_3", 0.3, "Indica el instrumento de medida (Balanza) (0.3 p)"));
+                    </script>
+                </tbody>
+            </table>
+            <p>Puntuación Parcial: <span id="resultado_2">0.00</span> / 1.00</p>
         </div>
 
         <div class="item-correccion" data-item="3" data-ce-contrib="C.E. 1.3" data-ce-peso="1.0">
             <h3>3. Sólido Irregular: Definición y Procedimiento (1.0 pto)</h3>
-            <div class="subcriterio"><input type="checkbox" data-puntos="0.3"> Define un sólido irregular (0.3 p)</div>
-            <div class="subcriterio"><input type="checkbox" data-puntos="0.2"> Da un ejemplo válido (0.2 p)</div>
-            <div class="subcriterio"><input type="checkbox" data-puntos="0.5"> Describe el procedimiento de inmersión ($V_f - V_i$) (0.5 p)</div>
+            <table>
+                <script>document.write(generateTableHeader());</script>
+                <tbody>
+                    <script>
+                        document.write(generateTableRow("criterio3_1", 0.3, "Define un sólido irregular (0.3 p)"));
+                        document.write(generateTableRow("criterio3_2", 0.2, "Da un ejemplo válido (0.2 p)"));
+                        document.write(generateTableRow("criterio3_3", 0.5, "Describe el procedimiento de inmersión ($V_f - V_i$) (0.5 p)"));
+                    </script>
+                </tbody>
+            </table>
+            <p>Puntuación Parcial: <span id="resultado_3">0.00</span> / 1.00</p>
         </div>
 
         <div class="item-correccion" data-item="4" data-ce-contrib="C.E. 1.3" data-ce-peso="1.0">
             <h3>4. Determinación de Densidad Regular (1.0 pto)</h3>
-            <div class="subcriterio"><input type="checkbox" data-puntos="0.3"> Mide la masa (Balanza) (0.3 p)</div>
-            <div class="subcriterio"><input type="checkbox" data-puntos="0.3"> Mide dimensiones (Regla/Calibre) (0.3 p)</div>
-            <div class="subcriterio"><input type="checkbox" data-puntos="0.4"> Usa fórmula geométrica y $~\rho=m/V$ (0.4 p)</div>
+            <table>
+                <script>document.write(generateTableHeader());</script>
+                <tbody>
+                    <script>
+                        document.write(generateTableRow("criterio4_1", 0.3, "Mide la masa (Balanza) (0.3 p)"));
+                        document.write(generateTableRow("criterio4_2", 0.3, "Mide dimensiones (Regla/Calibre) (0.3 p)"));
+                        document.write(generateTableRow("criterio4_3", 0.4, "Usa fórmula geométrica y $\\rho=m/V$ (0.4 p)"));
+                    </script>
+                </tbody>
+            </table>
+            <p>Puntuación Parcial: <span id="resultado_4">0.00</span> / 1.00</p>
         </div>
 
         <div class="item-correccion" data-item="5" data-ce-contrib="C.E. 2.2" data-ce-peso="1.0">
             <h3>5. Esquema: Cambios de Estado (1.0 pto)</h3>
-            <div class="subcriterio"><input type="checkbox" data-puntos="0.166"> 1. Solidificación (0.166 p)</div>
-            <div class="subcriterio"><input type="checkbox" data-puntos="0.167"> 2. Fusión (0.167 p)</div>
-            <div class="subcriterio"><input type="checkbox" data-puntos="0.167"> 3. Vaporización (0.167 p)</div>
-            <div class="subcriterio"><input type="checkbox" data-puntos="0.167"> 4. Condensación (0.167 p)</div>
-            <div class="subcriterio"><input type="checkbox" data-puntos="0.167"> 5. Sublimación (0.167 p)</div>
-            <div class="subcriterio"><input type="checkbox" data-puntos="0.166"> 6. Sublimación Inversa (0.166 p)</div>
+            <table>
+                <script>document.write(generateTableHeader());</script>
+                <tbody>
+                    <script>
+                        document.write(generateTableRow("criterio5_1", 0.166, "1. Solidificación (0.166 p)"));
+                        document.write(generateTableRow("criterio5_2", 0.167, "2. Fusión (0.167 p)"));
+                        document.write(generateTableRow("criterio5_3", 0.167, "3. Vaporización (0.167 p)"));
+                        document.write(generateTableRow("criterio5_4", 0.167, "4. Condensación (0.167 p)"));
+                        document.write(generateTableRow("criterio5_5", 0.167, "5. Sublimación (0.167 p)"));
+                        document.write(generateTableRow("criterio5_6", 0.166, "6. Sublimación Inversa (0.166 p)"));
+                    </script>
+                </tbody>
+            </table>
+            <p>Puntuación Parcial: <span id="resultado_5">0.00</span> / 1.00</p>
         </div>
 
         <div class="item-correccion" data-item="6" data-ce-contrib="C.E. 2.1" data-ce-peso="1.0">
             <h3>6. Densidad: Concepto y Clasificación (1.0 pto)</h3>
-            <div class="subcriterio"><input type="checkbox" data-puntos="0.3"> Define la densidad (0.3 p)</div>
-            <div class="subcriterio"><input type="checkbox" data-puntos="0.3"> Indica la fórmula ($\rho=m/V$) (0.3 p)</div>
-            <div class="subcriterio"><input type="checkbox" data-puntos="0.2"> Indica la unidad SI ($\text{kg/m}^3$) (0.2 p)</div>
-            <div class="subcriterio"><input type="checkbox" data-puntos="0.2"> Clasifica como derivada (0.2 p)</div>
+            <table>
+                <script>document.write(generateTableHeader());</script>
+                <tbody>
+                    <script>
+                        document.write(generateTableRow("criterio6_1", 0.3, "Define la densidad (0.3 p)"));
+                        document.write(generateTableRow("criterio6_2", 0.3, "Indica la fórmula ($\\rho=m/V$) (0.3 p)"));
+                        document.write(generateTableRow("criterio6_3", 0.2, "Indica la unidad SI ($\\text{kg/m}^3$) (0.2 p)"));
+                        document.write(generateTableRow("criterio6_4", 0.2, "Clasifica como derivada (0.2 p)"));
+                    </script>
+                </tbody>
+            </table>
+            <p>Puntuación Parcial: <span id="resultado_6">0.00</span> / 1.00</p>
         </div>
 
         <div class="item-correccion" data-item="7" data-ce-contrib="C.E. 3.2" data-ce-peso="1.0">
             <h3>7. Problema: Cálculo de Masa ($m=\rho V$) (1.0 pto)</h3>
-            <div class="subcriterio"><input type="checkbox" data-puntos="0.3"> Conversión de unidades correcta ($2.5 \text{ L} \to 2500 \text{ mL}$) (0.3 p)</div>
-            <div class="subcriterio"><input type="checkbox" data-puntos="0.2"> Fórmula y despeje ($m=\rho V$) (0.2 p)</div>
-            <div class="subcriterio"><input type="checkbox" data-puntos="0.3"> Cálculo numérico correcto ($2450 \text{ g}$) (0.3 p)</div>
-            <div class="subcriterio"><input type="checkbox" data-puntos="0.2"> Resultado final con unidad correcta (0.2 p)</div>
+            <table>
+                <script>document.write(generateTableHeader());</script>
+                <tbody>
+                    <script>
+                        document.write(generateTableRow("criterio7_1", 0.3, "Conversión de unidades correcta ($2.5 \\text{ L} \\to 2500 \\text{ mL}$) (0.3 p)"));
+                        document.write(generateTableRow("criterio7_2", 0.2, "Fórmula y despeje ($m=\\rho V$) (0.2 p)"));
+                        document.write(generateTableRow("criterio7_3", 0.3, "Cálculo numérico correcto ($2450 \\text{ g}$) (0.3 p)"));
+                        document.write(generateTableRow("criterio7_4", 0.2, "Resultado final con unidad correcta (0.2 p)"));
+                    </script>
+                </tbody>
+            </table>
+            <p>Puntuación Parcial: <span id="resultado_7">0.00</span> / 1.00</p>
         </div>
 
         <div class="item-correccion" data-item="8" data-ce-contrib="C.E. 3.2" data-ce-peso="1.0">
             <h3>8. Problema: Cálculo de Volumen ($V=m/\rho$) (1.0 pto)</h3>
-            <div class="subcriterio"><input type="checkbox" data-puntos="0.3"> Identifica datos y fórmula/despeje ($V=m/\rho$) (0.3 p)</div>
-            <div class="subcriterio"><input type="checkbox" data-puntos="0.4"> Cálculo numérico correcto ($89.04 \text{ cm}^3$) (0.4 p)</div>
-            <div class="subcriterio"><input type="checkbox" data-puntos="0.3"> Unidad correcta y redondeo a dos decimales (0.3 p)</div>
+            <table>
+                <script>document.write(generateTableHeader());</script>
+                <tbody>
+                    <script>
+                        document.write(generateTableRow("criterio8_1", 0.3, "Identifica datos y fórmula/despeje ($V=m/\\rho$) (0.3 p)"));
+                        document.write(generateTableRow("criterio8_2", 0.4, "Cálculo numérico correcto ($89.04 \\text{ cm}^3$) (0.4 p)"));
+                        document.write(generateTableRow("criterio8_3", 0.3, "Unidad correcta y redondeo a dos decimales (0.3 p)"));
+                    </script>
+                </tbody>
+            </table>
+            <p>Puntuación Parcial: <span id="resultado_8">0.00</span> / 1.00</p>
         </div>
 
         <div class="item-correccion" data-item="9" data-ce-contrib="C.E. 3.2" data-ce-peso="1.0">
             <h3>9. Problema: Volumen de Esfera ($V = \frac{4}{3} \pi R^3$) (1.0 pto)</h3>
-            <div class="subcriterio"><input type="checkbox" data-puntos="0.3"> Fórmula de volumen de esfera correcta (0.3 p)</div>
-            <div class="subcriterio"><input type="checkbox" data-puntos="0.4"> Cálculo numérico correcto ($268.08 \text{ cm}^3$) (0.4 p)</div>
-            <div class="subcriterio"><input type="checkbox" data-puntos="0.3"> Unidad correcta y redondeo a dos decimales (0.3 p)</div>
+            <table>
+                <script>document.write(generateTableHeader());</script>
+                <tbody>
+                    <script>
+                        document.write(generateTableRow("criterio9_1", 0.3, "Fórmula de volumen de esfera correcta (0.3 p)"));
+                        document.write(generateTableRow("criterio9_2", 0.4, "Cálculo numérico correcto ($268.08 \\text{ cm}^3$) (0.4 p)"));
+                        document.write(generateTableRow("criterio9_3", 0.3, "Unidad correcta y redondeo a dos decimales (0.3 p)"));
+                    </script>
+                </tbody>
+            </table>
+            <p>Puntuación Parcial: <span id="resultado_9">0.00</span> / 1.00</p>
         </div>
 
         <div class="item-correccion" data-item="10" data-ce-contrib="C.E. 1.3, C.E. 3.2" data-ce-peso-ce1="0.4" data-ce-peso-ce3="0.6">
             <h3>10. Problema: Cálculo de Densidad por Inmersión (1.0 pto)</h3>
-            <div class="subcriterio"><input type="checkbox" data-puntos="0.4"> Cálculo de volumen por inmersión ($17.5 \text{ mL}$) (0.4 p - C.E. 1.3)</div>
-            <div class="subcriterio"><input type="checkbox" data-puntos="0.2"> Fórmula de densidad ($\rho=m/V$) (0.2 p - C.E. 3.2)</div>
-            <div class="subcriterio"><input type="checkbox" data-puntos="0.3"> Cálculo numérico correcto ($\approx 4.57$) (0.3 p - C.E. 3.2)</div>
-            <div class="subcriterio"><input type="checkbox" data-puntos="0.1"> Unidad final correcta ($\text{g/mL}$ o $~\text{g/cm}^3$) (0.1 p - C.E. 3.2)</div>
+            <table>
+                <script>document.write(generateTableHeader());</script>
+                <tbody>
+                    <script>
+                        document.write(generateTableRow("criterio10_1", 0.4, "Cálculo de volumen por inmersión ($17.5 \\text{ mL}$) (0.4 p - C.E. 1.3)"));
+                        document.write(generateTableRow("criterio10_2", 0.2, "Fórmula de densidad ($\\rho=m/V$) (0.2 p - C.E. 3.2)"));
+                        document.write(generateTableRow("criterio10_3", 0.3, "Cálculo numérico correcto ($\\approx 4.57$) (0.3 p - C.E. 3.2)"));
+                        document.write(generateTableRow("criterio10_4", 0.1, "Unidad final correcta ($\\text{g/mL}$ o $\\text{g/cm}^3$) (0.1 p - C.E. 3.2)"));
+                    </script>
+                </tbody>
+            </table>
+            <p>Puntuación Parcial: <span id="resultado_10">0.00</span> / 1.00</p>
         </div>
 
     </div>
@@ -194,109 +214,148 @@
         <hr>
         
         <h3>Puntuación por Criterio de Evaluación (Máximo 10)</h3>
-        <p class="ce-score">C.E. 1.3 (Procedimientos Científicos) <span id="ce1-3">0.00 / 10</span></p>
-        <p class="ce-score">C.E. 2.1 (Propiedades, Magnitudes y Unidades SI) <span id="ce2-1">0.00 / 10</span></p>
-        <p class="ce-score">C.E. 2.2 (Cambios de Estado) <span id="ce2-2">0.00 / 10</span></p>
-        <p class="ce-score">C.E. 3.2 (Aplicación Matemática y Unidades) <span id="ce3-2">0.00 / 10</span></p>
+        <p class="ce-score">C.E. 1.3 (Procedimientos Científicos) <span id="ce1-3">0.00 / 10 (Obtenido: 0.00 pts)</span></p>
+        <p class="ce-score">C.E. 2.1 (Propiedades, Magnitudes y Unidades SI) <span id="ce2-1">0.00 / 10 (Obtenido: 0.00 pts)</span></p>
+        <p class="ce-score">C.E. 2.2 (Cambios de Estado) <span id="ce2-2">0.00 / 10 (Obtenido: 0.00 pts)</span></p>
+        <p class="ce-score">C.E. 3.2 (Aplicación Matemática y Unidades) <span id="ce3-2">0.00 / 10 (Obtenido: 0.00 pts)</span></p>
     </div>
 
 </div>
 
 <script>
-    // --- Definición de Pesos Máximos de los Criterios en el examen (Suma total = 10.0) ---
-    const PESOS_CE_EXAMEN = {
-        'C.E. 1.3': 2.4, 
-        'C.E. 2.1': 2.0, 
-        'C.E. 2.2': 2.0, 
-        'C.E. 3.2': 3.6 
-    };
-    
-    // FUNCIÓN DE UTILIDAD CORREGIDA para generar IDs (C.E. 1.3 -> ce1-3)
-    function normalizarCeId(ceString) {
-        return ceString
-            .toLowerCase()
-            .replace(/c\.e\.\s*/, 'ce') 
-            .replace(/[\.\s]/g, '-');
-    }
-
-    function calcularNota() {
-        let notaTotal = 0;
-        let puntosObtenidosCE = {
-            'C.E. 1.3': 0,
-            'C.E. 2.1': 0,
-            'C.E. 2.2': 0,
-            'C.E. 3.2': 0
+    document.addEventListener('DOMContentLoaded', () => {
+        
+        // --- Definición de Pesos Máximos de los Criterios en el examen ---
+        const PESOS_CE_EXAMEN = {
+            'C.E. 1.3': 2.4, 'C.E. 2.1': 2.0, 'C.E. 2.2': 2.0, 'C.E. 3.2': 3.6 
         };
 
-        // 1. ITERAR SOBRE CADA ÍTEM DE CORRECCIÓN
-        document.querySelectorAll('.item-correccion').forEach(itemDiv => {
-            let itemPuntosObtenidos = 0;
+        // Función de utilidad para generar IDs (C.E. 1.3 -> ce1-3)
+        function normalizarCeId(ceString) {
+            return ceString
+                .toLowerCase()
+                .replace(/c\.e\.\s*/, 'ce') 
+                .replace(/[\.\s]/g, '-');
+        }
+
+        /**
+         * Actualiza la puntuación parcial para un Ítem dado (data-item="N").
+         * @param {number} itemId - El número del ítem (1 a 10).
+         * @returns {number} La puntuación obtenida en ese ítem.
+         */
+        function actualizarResultadoItem(itemId) {
+            const itemDiv = document.querySelector(`.item-correccion[data-item="${itemId}"]`);
+            if (!itemDiv) return 0;
+            
+            const itemCheckboxes = itemDiv.querySelectorAll('input[type="checkbox"]');
+            let puntuacionItem = 0;
+            const resultadoSpan = document.getElementById(`resultado_${itemId}`);
             const totalPuntosItem = 1.0; 
 
-            // Sumar los puntos obtenidos en los subcriterios de corrección
-            itemDiv.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+            itemCheckboxes.forEach(checkbox => {
                 if (checkbox.checked) {
-                    itemPuntosObtenidos += parseFloat(checkbox.getAttribute('data-puntos'));
+                    puntuacionItem += parseFloat(checkbox.getAttribute('data-puntos'));
                 }
             });
 
-            // Ajustar los puntos del ítem a un máximo de 1.0
-            itemPuntosObtenidos = Math.min(itemPuntosObtenidos, totalPuntosItem);
-            notaTotal += itemPuntosObtenidos;
-
-            // 2. ASIGNAR LA PUNTUACIÓN DEL ÍTEM A LOS CRITERIOS DE EVALUACIÓN
+            // Ajustamos la puntuación parcial al máximo de 1.0 pto
+            puntuacionItem = Math.min(puntuacionItem, totalPuntosItem);
             
-            const ceContrib = itemDiv.getAttribute('data-ce-contrib');
-            const proporcionAcierto = itemPuntosObtenidos / totalPuntosItem; 
-
-            if (ceContrib.includes(',')) {
-                // CASO ESPECIAL (ÍTEM 10)
-                const ce1PesoItem = parseFloat(itemDiv.getAttribute('data-ce-peso-ce1')); 
-                const ce3PesoItem = parseFloat(itemDiv.getAttribute('data-ce-peso-ce3')); 
-                
-                puntosObtenidosCE['C.E. 1.3'] += proporcionAcierto * ce1PesoItem;
-                puntosObtenidosCE['C.E. 3.2'] += proporcionAcierto * ce3PesoItem;
-
-            } else {
-                // CASO GENERAL
-                const pesoCEItem = parseFloat(itemDiv.getAttribute('data-ce-peso'));
-                puntosObtenidosCE[ceContrib] += proporcionAcierto * pesoCEItem;
+            if (resultadoSpan) {
+                resultadoSpan.textContent = puntuacionItem.toFixed(2);
             }
+
+            return puntuacionItem;
+        }
+        
+        /**
+         * FUNCIÓN PRINCIPAL: Calcula Nota Final, Puntuación por CE
+         */
+        function calcularNotaTotal() {
+            let notaTotal = 0;
+            let puntosObtenidosCE = {
+                'C.E. 1.3': 0, 'C.E. 2.1': 0, 'C.E. 2.2': 0, 'C.E. 3.2': 0
+            };
+
+            // 1. ITERAR SOBRE CADA ÍTEM DE CORRECCIÓN
+            document.querySelectorAll('.item-correccion').forEach(itemDiv => {
+                const itemId = itemDiv.getAttribute('data-item');
+                
+                // Recalcular la puntuación local (usa la función de actualización)
+                const itemPuntosObtenidos = actualizarResultadoItem(itemId);
+                const totalPuntosItem = 1.0; 
+                notaTotal += itemPuntosObtenidos;
+
+                // 2. ASIGNAR LA PUNTUACIÓN DEL ÍTEM A LOS CRITERIOS DE EVALUACIÓN
+                const ceContrib = itemDiv.getAttribute('data-ce-contrib');
+                const proporcionAcierto = itemPuntosObtenidos / totalPuntosItem; 
+
+                if (ceContrib && ceContrib.includes(',')) {
+                    // CASO ESPECIAL (ÍTEM 10)
+                    const ce1PesoItem = parseFloat(itemDiv.getAttribute('data-ce-peso-ce1')); 
+                    const ce3PesoItem = parseFloat(itemDiv.getAttribute('data-ce-peso-ce3')); 
+                    
+                    puntosObtenidosCE['C.E. 1.3'] += proporcionAcierto * ce1PesoItem;
+                    puntosObtenidosCE['C.E. 3.2'] += proporcionAcierto * ce3PesoItem;
+                } else if (ceContrib) {
+                    // CASO GENERAL (Ítems 1 al 9)
+                    const pesoCEItem = parseFloat(itemDiv.getAttribute('data-ce-peso'));
+                    puntosObtenidosCE[ceContrib] += proporcionAcierto * pesoCEItem;
+                }
+            });
+
+            // 3. MOSTRAR NOTA FINAL (Sobre 10)
+            document.getElementById('nota-examen').textContent = `Nota Final (0/10): ${notaTotal.toFixed(2)}`;
+
+            // 4. MOSTRAR PUNTUACIÓN DE CADA CRITERIO (Sobre una base de 10)
+            for (const ce in PESOS_CE_EXAMEN) {
+                const pesoMaximo = PESOS_CE_EXAMEN[ce];
+                const puntosObtenidos = puntosObtenidosCE[ce];
+                
+                const scoreSobre10 = (puntosObtenidos / pesoMaximo) * 10;
+                const scoreFinal = Math.min(scoreSobre10, 10.0);
+
+                const ceId = normalizarCeId(ce);
+                const ceElement = document.getElementById(ceId);
+                
+                if (ceElement) { 
+                    ceElement.textContent = 
+                        `${scoreFinal.toFixed(2)} / 10 (Obtenido: ${puntosObtenidos.toFixed(2)} pts)`;
+                } 
+            }
+        }
+
+        /**
+         * MANEJADOR DE EVENTOS: Exclusión Mutua y Recálculo general
+         */
+        function manejarCambioCheckbox(event) {
+            const clickedCheckbox = event.target;
+            const groupName = clickedCheckbox.name;
+            
+            // Lógica de exclusión mutua
+            if (groupName) {
+                const groupCheckboxes = document.querySelectorAll(`input[name="${groupName}"]`);
+                
+                groupCheckboxes.forEach(checkbox => {
+                    if (checkbox !== clickedCheckbox) {
+                        checkbox.checked = false;
+                    }
+                });
+            }
+
+            // Recalcula y actualiza todas las puntuaciones (parciales y totales)
+            calcularNotaTotal();
+        }
+
+        // --- ASIGNACIÓN DE EVENT LISTENERS ---
+        document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+            checkbox.addEventListener('change', manejarCambioCheckbox); 
         });
 
-        // 3. MOSTRAR NOTA FINAL
-        document.getElementById('nota-examen').textContent = `Nota Final (0/10): ${notaTotal.toFixed(2)}`;
-
-        // 4. MOSTRAR PUNTUACIÓN DE CADA CRITERIO (Sobre una base de 10)
-        
-        for (const ce in PESOS_CE_EXAMEN) {
-            const pesoMaximo = PESOS_CE_EXAMEN[ce];
-            const puntosObtenidos = puntosObtenidosCE[ce];
-            
-            // Puntuación del criterio sobre 10
-            const scoreSobre10 = (puntosObtenidos / pesoMaximo) * 10;
-            const scoreFinal = Math.min(scoreSobre10, 10.0);
-
-            // Uso de la función normalizarCeId para garantizar que el ID sea correcto
-            const ceId = normalizarCeId(ce);
-            
-            const ceElement = document.getElementById(ceId);
-            
-            if (ceElement) { 
-                ceElement.textContent = 
-                    `${scoreFinal.toFixed(2)} / 10 (Obtenido: ${puntosObtenidos.toFixed(2)} pts)`;
-            } 
-        }
-    }
-
-    // --- EVENT LISTENERS ---
-    // Adjuntar la función de cálculo a todos los checkboxes.
-    document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-        checkbox.addEventListener('change', calcularNota); 
+        // Inicializar todos los cálculos al cargar la página
+        // Simular un clic para actualizar todos los resultados parciales y totales
+        calcularNotaTotal();
     });
-
-    // Inicializar el cálculo al cargar la página 
-    document.addEventListener('DOMContentLoaded', calcularNota);
 </script>
 </body>
 </html>
