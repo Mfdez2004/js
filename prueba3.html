@@ -26,7 +26,9 @@
         <label style="margin-right: 20px;display: block;margin-bottom: 5px;">
             <input type="checkbox" id="fitCurve"> **Ajustar a y = a·x²** y mostrar $R^2$
         </label>
-        
+        <label>
+            <input type="checkbox" id="toggleColumn"> Ocultar/Mostrar columna **Distancia 1**
+        </label>
         <div id="results"></div>
         <p>*El gráfico siempre representa la **Columna 0 (Tiempo)** vs la **Columna 1 (Distancia 1)**.</p>
     </div>
@@ -41,6 +43,11 @@
             <canvas id="parabolaChart"></canvas>
         </div>
     </div>
+        <label style="margin-right: 20px;display: block;margin-bottom: 5px;">
+            <button onclick="updateChart()">
+    Actualizar Gráfico
+</button>
+        </label>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     
     <script src="https://cdn.jsdelivr.net/npm/handsontable@14.3/dist/handsontable.full.min.js"></script>
@@ -76,13 +83,38 @@
         const invertCheckbox1 = document.getElementById('invertCol1');
         const invertCheckbox2 = document.getElementById('invertSigCol1');
         const fitCurveCheckbox = document.getElementById('fitCurve');
-
+        // Checkboxes para ocultar
+        const toggleCheckbox = document.getElementById('toggleColumn');        
+        const COL_INDEX_TO_HIDE = 1; // Índice de la columna 'Distancia 1'
+        let colsNumb=0;
 /**
          * Calcula el coeficiente 'a' y R^2 para la regresión y = a*x^2.
          * @param {Array<number>} xData - Datos del eje X (Tiempo).
          * @param {Array<number>} yData - Datos del eje Y (Distancia 1).
          * @returns {{a: number, r2: number, minX: number, maxX: number}} Resultados de la regresión.
          */
+        function isColumnEmpty(colIndex) {
+            const rowCount = hot.countRows();
+            
+            // Iterar sobre cada fila de la tabla
+            for (let i = 0; i < rowCount; i++) {
+                // hot.getDataAtCell(fila, columna) obtiene el valor exacto de la celda
+                let cellValue = hot.getDataAtCell(i, colIndex);
+                
+                // Si el valor no es nulo ni indefinido, debemos verificar si no está vacío
+                if (cellValue !== null && cellValue !== undefined) {
+                    
+                    // Convertir a cadena y quitar espacios en blanco al inicio y al final (trim())
+                    // Si después de quitar espacios queda algo, la celda NO está vacía.
+                    if (String(cellValue).trim().length > 0) {
+                        return false; // ¡Encontramos un dato! La columna NO está vacía.
+                    }
+                }
+            }
+            
+            // Si el bucle termina sin encontrar datos, la columna está vacía.
+            return true;
+        }
         function calculateRegression(xData, yData) {
             let sum_x2_y = 0;
             let sum_x2_sq = 0;
@@ -135,10 +167,14 @@
             return { a, r2, minX, maxX };
         }
 
-function updateChart() {
+    function updateChart() {
             // 1. Extraer los datos de Handsontable
             const timeData = hot.getData(0, COL_TIME, hot.countRows() - 1, COL_TIME).flat();
-            const distanceData = hot.getData(0, COL_DISTANCE_1, hot.countRows() - 1, COL_DISTANCE_1).flat();
+            let distanceData;
+            distanceData =hot.getData(0, COL_DISTANCE_1, hot.countRows() - 1, COL_DISTANCE_1).flat();
+            if ((colsNumb >1) && !(isColumnEmpty(2))) {
+                distanceData =hot.getData(0, COL_DISTANCE_2, hot.countRows() - 1, COL_DISTANCE_2).flat();
+            }
             
             // 2. Crear el formato de puntos {x: T, y: D1} requerido por Chart.js
             const chartDataPoints = timeData.map((t, index) => {
@@ -216,6 +252,8 @@ function updateChart() {
                 parabolaChart.update();
             }
         }
+
+
         function initializeChart() {
             parabolaChart = new Chart(canvas, {
                 type: 'scatter', // Scatter chart es ideal para nubes de puntos científicos
@@ -373,7 +411,14 @@ function updateChart() {
                 columns: [
                     { type: 'numeric', numericFormat: { pattern: '0.000' } }, 
                     { type: 'numeric', numericFormat: { pattern: '0.000' } }, 
+                    { type: 'numeric', numericFormat: { pattern: '0.000' } }, 
                 ],
+                hiddenColumns: {
+                    // Inicialmente, la columna 1 (Distancia 1) está visible (no está en 'columns')
+                    columns: [], 
+                    // Ocultar el encabezado
+                    indicators: false 
+                },
                 // 1. Hook para la edición manual (escribir en celdas)
                 afterChange: function(changes, source) {
                     if (source === 'edit') {
@@ -384,10 +429,72 @@ function updateChart() {
                 // 2. ¡NUEVO HOOK! Se dispara después de que Handsontable finaliza el pegado de datos
                 afterPaste: function(data, coords) {
                     updateChart();
+                },
+                // *********** NUEVO HOOK: beforeCopy ***********
+                beforeCopy: function(dataArray, coords) {
+                    // Verificamos si la columna a ocultar está actualmente oculta en la configuración
+                    const hiddenCols = hot.getSettings().hiddenColumns.columns || [];
+                    const isHidden = hiddenCols.includes(COL_INDEX_TO_HIDE);
+
+                    if (isHidden) {
+                        // Si la columna está oculta, modificamos el array de datos que se enviará al portapapeles.
+                        
+                        // Iteramos sobre cada fila del array de datos (dataArray)
+                        for (let i = 0; i < dataArray.length; i++) {
+                            // dataArray[i] es la fila (un array)
+                            
+                            // Usamos splice() para eliminar el elemento en la posición del índice.
+                            // Nota: Handsontable ajusta los índices de 'dataArray' para la selección, 
+                            // pero en este caso, como estamos copiando la tabla completa (o una gran parte), 
+                            // el índice 1 sigue correspondiendo a la Columna 1.
+                            
+                            dataArray[i].splice(COL_INDEX_TO_HIDE, 1);
+                        }
+                    }
+                },
+                // **********************************************               
+                // 2. ¡NUEVO HOOK! Se dispara después de que Handsontable finaliza el pegado de datos
+                afterPaste: function(data, coords) {
+                    updateChart();
+                    colsNumb=hot.countCols();
                 }
             };
             
             hot = new Handsontable(container, hotSettings);
+        }
+
+        function toggleColumnVisibility(hide) {
+            // Obtenemos la configuración actual de hiddenColumns
+            const currentHidden = hot.getSettings().hiddenColumns.columns || [];
+            
+            let newHidden;
+
+            if (hide) {
+                // Ocultar: Añadir el índice si no está ya
+                if (!currentHidden.includes(COL_INDEX_TO_HIDE)) {
+                    newHidden = [...currentHidden, COL_INDEX_TO_HIDE];
+                } else {
+                    newHidden = currentHidden;
+                }
+            } else {
+                // Mostrar: Filtrar el índice para quitarlo
+                newHidden = currentHidden.filter(index => index !== COL_INDEX_TO_HIDE);
+            }
+
+            // 2. Aplicar la nueva configuración a la instancia de Handsontable
+            hot.updateSettings({
+                hiddenColumns: {
+                    columns: newHidden,
+                    indicators: false
+                }
+            });
+            // 2. Forzar el redibujado:
+            // a) Primero, renderizar para aplicar los cambios de hiddenColumns
+            hot.render();
+            
+            // b) CLAVE para eliminar rastros: forzar el recálculo de dimensiones de la tabla.
+            // Esto ajusta el ancho del canvas y elimina cualquier artefacto residual.
+            hot.refreshDimensions(); 
         }
 
         // 6. Asignar Event Listeners
@@ -408,6 +515,10 @@ function updateChart() {
         });
 
         fitCurveCheckbox.addEventListener('change', updateChart);
+        toggleCheckbox.addEventListener('change', (event) => {
+            // 'checked' es true si se debe ocultar (según la lógica de la etiqueta en el HTML)
+            toggleColumnVisibility(event.target.checked); 
+        });
 
         // 7. Iniciar el proyecto
         initializeHandsontable();
