@@ -338,12 +338,12 @@ function updateChart() {
             hot.render();
             updateChart(); // ¡ACTUALIZAR GRÁFICO!
         }
-        function invertSig(colIndex) {
-            const factor = toMeters ? -1 : -1; // 0.01 para cm -> m, 100 para m -> cm
+        function invertSig(colIndex, toSig) {
+            const factor = toSig ? -1 : -1; // 0.01 para cm -> m, 100 para m -> cm
             
 
             // 1. Actualizar el encabezado de la columna (preservando el estado de Inversión)
-            currentColHeaders[colIndex] = currentColHeaders[colIndex].replace(/\((cm|m)\)/i, `(${newUnit})`);
+            //currentColHeaders[colIndex] = currentColHeaders[colIndex].replace(/\((cm|m)\)/i, `(${newUnit})`);
             
             // 2. Recorrer y actualizar cada celda
             const rowCount = hot.countRows();
@@ -359,8 +359,6 @@ function updateChart() {
             hot.render();
             updateChart(); // ¡ACTUALIZAR GRÁFICO!
         }
-
-        // --- INICIALIZACIÓN Y EVENT LISTENERS ---
 
         function initializeHandsontable() {
             const hotSettings = {
