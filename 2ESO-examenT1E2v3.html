@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Corrector Automático FQ - Examen 3</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 20px;
+            background-color: #f4f7f6;
+            color: #333;
+        }
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background: #fff;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2 {
+            color: #007bff;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 5px;
+            margin-bottom: 20px;
+        }
+        .item-correccion {
+            background-color: #eef;
+            border: 1px solid #ccc;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+        .item-correccion h3 {
+            margin-top: 0;
+            color: #0056b3;
+        }
+        .subcriterio {
+            margin-left: 20px;
+            padding: 5px 0;
+            display: flex;
+            align-items: center;
+        }
+        .subcriterio input[type="checkbox"] {
+            margin-right: 10px;
+            transform: scale(1.2);
+            accent-color: #28a745;
+        }
+        .resultado {
+            margin-top: 30px;
+            padding: 20px;
+            border: 3px solid #28a745;
+            background-color: #d4edda;
+            color: #155724;
+            border-radius: 8px;
+        }
+        .resultado h2 {
+            border-bottom-color: #155724;
+            color: #155724;
+        }
+        .ce-score {
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        .ce-score span {
+            float: right;
+            color: #dc3545;
+        }
+        .nota-final {
+            font-size: 1.8em;
+            font-weight: bold;
+            text-align: center;
+            margin-top: 15px;
+            color: #007bff;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Corrector Automático - Examen FQ 2º ESO (Versión 3)</h1>
+    <p>Marque las casillas para asignar puntos. La nota y la puntuación por Criterio de Evaluación (sobre 10) se actualizan automáticamente.</p>
+    
+    <div id="examen">
+        
+        <div class="item-correccion" data-item="1" data-ce-contrib="C.E. 2.2" data-ce-peso="1.0">
+            <h3>1. Cambios de Estado (Concepto) (1.0 pto)</h3>
+            <div class="subcriterio"><input type="checkbox" data-puntos="0.5"> Define cambio de estado (variación de estado de agregación) (0.5 p)</div>
+            <div class="subcriterio"><input type="checkbox" data-puntos="0.5"> Menciona la causa (variación de Temperatura o Presión) (0.5 p)</div>
+        </div>
+
+        <div class="item-correccion" data-item="2" data-ce-contrib="C.E. 2.1" data-ce-peso="1.0">
+            <h3>2. Masa: Definición y Medida (1.0 pto)</h3>
+            <div class="subcriterio"><input type="checkbox" data-puntos="0.4"> Define la masa (0.4 p)</div>
+            <div class="subcriterio"><input type="checkbox" data-puntos="0.3"> Indica la unidad SI (kg) (0.3 p)</div>
+            <div class="subcriterio"><input type="checkbox" data-puntos="0.3"> Indica el instrumento de medida (Balanza) (0.3 p)</div>
+        </div>
+
+        <div class="item-correccion" data-item="3" data-ce-contrib="C.E. 1.3" data-ce-peso="1.0">
+            <h3>3. Sólido Irregular: Definición y Procedimiento (1.0 pto)</h3>
+            <div class="subcriterio"><input type="checkbox" data-puntos="0.3"> Define un sólido irregular (0.3 p)</div>
+            <div class="subcriterio"><input type="checkbox" data-puntos="0.2"> Da un ejemplo válido (0.2 p)</div>
+            <div class="subcriterio"><input type="checkbox" data-puntos="0.5"> Describe el procedimiento de inmersión ($V_f - V_i$) (0.5 p)</div>
+        </div>
+
+        <div class="item-correccion" data-item="4" data-ce-contrib="C.E. 1.3" data-ce-peso="1.0">
+            <h3>4. Determinación de Densidad Regular (1.0 pto)</h3>
+            <div class="subcriterio"><input type="checkbox" data-puntos="0.3"> Mide la masa (Balanza) (0.3 p)</div>
+            <div class="subcriterio"><input type="checkbox" data-puntos="0.3"> Mide dimensiones (Regla/Calibre) (0.3 p)</div>
+            <div class="subcriterio"><input type="checkbox" data-puntos="0.4"> Usa fórmula geométrica y $\rho=m/V$ (0.4 p)</div>
+        </div>
+
+        <div class="item-correccion" data-item="5" data-ce-contrib="C.E. 2.2" data-ce-peso="1.0">
+            <h3>5. Esquema: Cambios de Estado (1.0 pto)</h3>
+            <div class="subcriterio"><input type="checkbox" data-puntos="0.166"> 1. Solidificación (0.166 p)</div>
+            <div class="subcriterio"><input type="checkbox" data-puntos="0.167"> 2. Fusión (0.167 p)</div>
+            <div class="subcriterio"><input type="checkbox" data-puntos="0.167"> 3. Vaporización (0.167 p)</div>
+            <div class="subcriterio"><input type="checkbox" data-puntos="0.167"> 4. Condensación (0.167 p)</div>
+            <div class="subcriterio"><input type="checkbox" data-puntos="0.167"> 5. Sublimación (0.167 p)</div>
+            <div class="subcriterio"><input type="checkbox" data-puntos="0.166"> 6. Sublimación Inversa (0.166 p)</div>
+        </div>
+
+        <div class="item-correccion" data-item="6" data-ce-contrib="C.E. 2.1" data-ce-peso="1.0">
+            <h3>6. Densidad: Concepto y Clasificación (1.0 pto)</h3>
+            <div class="subcriterio"><input type="checkbox" data-puntos="0.3"> Define la densidad (0.3 p)</div>
+            <div class="subcriterio"><input type="checkbox" data-puntos="0.3"> Indica la fórmula ($\rho=m/V$) (0.3 p)</div>
+            <div class="subcriterio"><input type="checkbox" data-puntos="0.2"> Indica la unidad SI ($\text{kg/m}^3$) (0.2 p)</div>
+            <div class="subcriterio"><input type="checkbox" data-puntos="0.2"> Clasifica como derivada (0.2 p)</div>
+        </div>
+
+        <div class="item-correccion" data-item="7" data-ce-contrib="C.E. 3.2" data-ce-peso="1.0">
+            <h3>7. Problema: Cálculo de Masa ($m=\rho V$) (1.0 pto)</h3>
+            <div class="subcriterio"><input type="checkbox" data-puntos="0.3"> Conversión de unidades correcta ($2.5 \text{ L} \to 2500 \text{ mL}$) (0.3 p)</div>
+            <div class="subcriterio"><input type="checkbox" data-puntos="0.2"> Fórmula y despeje ($m=\rho V$) (0.2 p)</div>
+            <div class="subcriterio"><input type="checkbox" data-puntos="0.3"> Cálculo numérico correcto ($2450 \text{ g}$) (0.3 p)</div>
+            <div class="subcriterio"><input type="checkbox" data-puntos="0.2"> Resultado final con unidad correcta (0.2 p)</div>
+        </div>
+
+        <div class="item-correccion" data-item="8" data-ce-contrib="C.E. 3.2" data-ce-peso="1.0">
+            <h3>8. Problema: Cálculo de Volumen ($V=m/\rho$) (1.0 pto)</h3>
+            <div class="subcriterio"><input type="checkbox" data-puntos="0.3"> Identifica datos y fórmula/despeje ($V=m/\rho$) (0.3 p)</div>
+            <div class="subcriterio"><input type="checkbox" data-puntos="0.4"> Cálculo numérico correcto ($89.04 \text{ cm}^3$) (0.4 p)</div>
+            <div class="subcriterio"><input type="checkbox" data-puntos="0.3"> Unidad correcta y redondeo a dos decimales (0.3 p)</div>
+        </div>
+
+        <div class="item-correccion" data-item="9" data-ce-contrib="C.E. 3.2" data-ce-peso="1.0">
+            <h3>9. Problema: Volumen de Esfera ($V = \frac{4}{3} \pi R^3$) (1.0 pto)</h3>
+            <div class="subcriterio"><input type="checkbox" data-puntos="0.3"> Fórmula de volumen de esfera correcta (0.3 p)</div>
+            <div class="subcriterio"><input type="checkbox" data-puntos="0.4"> Cálculo numérico correcto ($268.08 \text{ cm}^3$) (0.4 p)</div>
+            <div class="subcriterio"><input type="checkbox" data-puntos="0.3"> Unidad correcta y redondeo a dos decimales (0.3 p)</div>
+        </div>
+
+        <div class="item-correccion" data-item="10" data-ce-contrib="C.E. 1.3, C.E. 3.2" data-ce-peso-ce1="0.4" data-ce-peso-ce3="0.6">
+            <h3>10. Problema: Cálculo de Densidad por Inmersión (1.0 pto)</h3>
+            <div class="subcriterio"><input type="checkbox" data-puntos="0.4"> Cálculo de volumen por inmersión ($17.5 \text{ mL}$) (0.4 p - C.E. 1.3)</div>
+            <div class="subcriterio"><input type="checkbox" data-puntos="0.2"> Fórmula de densidad ($\rho=m/V$) (0.2 p - C.E. 3.2)</div>
+            <div class="subcriterio"><input type="checkbox" data-puntos="0.3"> Cálculo numérico correcto ($\approx 4.57$) (0.3 p - C.E. 3.2)</div>
+            <div class="subcriterio"><input type="checkbox" data-puntos="0.1"> Unidad final correcta ($\text{g/mL}$ o $\text{g/cm}^3$) (0.1 p - C.E. 3.2)</div>
+        </div>
+
+    </div>
+    
+    <div class="resultado" id="resultados">
+        <h2>📊 Resultados de la Corrección</h2>
+        <div class="nota-final" id="nota-examen">Nota Final (0/10): 0.00</div>
+        
+        <hr>
+        
+        <h3>Puntuación por Criterio de Evaluación (Máximo 10)</h3>
+        <p class="ce-score">C.E. 1.3 (Procedimientos Científicos) <span id="ce1-3">0.00 / 10</span></p>
+        <p class="ce-score">C.E. 2.1 (Propiedades, Magnitudes y Unidades SI) <span id="ce2-1">0.00 / 10</span></p>
+        <p class="ce-score">C.E. 2.2 (Cambios de Estado) <span id="ce2-2">0.00 / 10</span></p>
+        <p class="ce-score">C.E. 3.2 (Aplicación Matemática y Unidades) <span id="ce3-2">0.00 / 10</span></p>
+    </div>
+
+</div>
+
+<script>
+    // --- Definición de Pesos Máximos de los Criterios en el examen (Suma total = 10.0) ---
+    const PESOS_CE_EXAMEN = {
+        'C.E. 1.3': 2.4, 
+        'C.E. 2.1': 2.0, 
+        'C.E. 2.2': 2.0, 
+        'C.E. 3.2': 3.6 
+    };
+    
+    // FUNCIÓN DE UTILIDAD CORREGIDA para generar IDs (C.E. 1.3 -> ce1-3)
+    function normalizarCeId(ceString) {
+        return ceString
+            .toLowerCase()
+            .replace(/c\.e\.\s*/, 'ce') 
+            .replace(/[\.\s]/g, '-');
+    }
+
+    function calcularNota() {
+        let notaTotal = 0;
+        let puntosObtenidosCE = {
+            'C.E. 1.3': 0,
+            'C.E. 2.1': 0,
+            'C.E. 2.2': 0,
+            'C.E. 3.2': 0
+        };
+
+        // 1. ITERAR SOBRE CADA ÍTEM DE CORRECCIÓN
+        document.querySelectorAll('.item-correccion').forEach(itemDiv => {
+            let itemPuntosObtenidos = 0;
+            const totalPuntosItem = 1.0; 
+
+            // Sumar los puntos obtenidos en los subcriterios de corrección
+            itemDiv.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                if (checkbox.checked) {
+                    itemPuntosObtenidos += parseFloat(checkbox.getAttribute('data-puntos'));
+                }
+            });
+
+            // Ajustar los puntos del ítem a un máximo de 1.0
+            itemPuntosObtenidos = Math.min(itemPuntosObtenidos, totalPuntosItem);
+            notaTotal += itemPuntosObtenidos;
+
+            // 2. ASIGNAR LA PUNTUACIÓN DEL ÍTEM A LOS CRITERIOS DE EVALUACIÓN
+            
+            const ceContrib = itemDiv.getAttribute('data-ce-contrib');
+            const proporcionAcierto = itemPuntosObtenidos / totalPuntosItem; 
+
+            if (ceContrib.includes(',')) {
+                // CASO ESPECIAL (ÍTEM 10)
+                const ce1PesoItem = parseFloat(itemDiv.getAttribute('data-ce-peso-ce1')); 
+                const ce3PesoItem = parseFloat(itemDiv.getAttribute('data-ce-peso-ce3')); 
+                
+                puntosObtenidosCE['C.E. 1.3'] += proporcionAcierto * ce1PesoItem;
+                puntosObtenidosCE['C.E. 3.2'] += proporcionAcierto * ce3PesoItem;
+
+            } else {
+                // CASO GENERAL
+                const pesoCEItem = parseFloat(itemDiv.getAttribute('data-ce-peso'));
+                puntosObtenidosCE[ceContrib] += proporcionAcierto * pesoCEItem;
+            }
+        });
+
+        // 3. MOSTRAR NOTA FINAL
+        document.getElementById('nota-examen').textContent = `Nota Final (0/10): ${notaTotal.toFixed(2)}`;
+
+        // 4. MOSTRAR PUNTUACIÓN DE CADA CRITERIO (Sobre una base de 10)
+        
+        for (const ce in PESOS_CE_EXAMEN) {
+            const pesoMaximo = PESOS_CE_EXAMEN[ce];
+            const puntosObtenidos = puntosObtenidosCE[ce];
+            
+            // Puntuación del criterio sobre 10
+            const scoreSobre10 = (puntosObtenidos / pesoMaximo) * 10;
+            const scoreFinal = Math.min(scoreSobre10, 10.0);
+
+            // Uso de la función normalizarCeId para garantizar que el ID sea correcto
+            const ceId = normalizarCeId(ce);
+            
+            const ceElement = document.getElementById(ceId);
+            
+            if (ceElement) { 
+                ceElement.textContent = 
+                    `${scoreFinal.toFixed(2)} / 10 (Obtenido: ${puntosObtenidos.toFixed(2)} pts)`;
+            } 
+        }
+    }
+
+    // --- EVENT LISTENERS ---
+    // Adjuntar la función de cálculo a todos los checkboxes.
+    document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+        checkbox.addEventListener('change', calcularNota); 
+    });
+
+    // Inicializar el cálculo al cargar la página 
+    document.addEventListener('DOMContentLoaded', calcularNota);
+</script>
+</body>
+</html>
