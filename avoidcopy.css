@@ -1,0 +1,6 @@
+/* Impedir la selección de texto en toda la página */
+body {
+  -webkit-user-select: none; /* Safari */
+  -ms-user-select: none;     /* IE 10 y Edge */
+  user-select: none;         /* Estándar */
+}
