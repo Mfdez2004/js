@@ -101,8 +101,3 @@
             context.stroke();
             context.closePath();
         }
-
-        window.onresize = () => {
-            canvas.width = 600;//window.innerWidth;
-            canvas.height = 600;//window.innerHeight;
-        };
