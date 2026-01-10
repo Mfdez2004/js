@@ -1,3 +1,32 @@
+let focoActivo = true;
+
+function pierdeFoco() {
+    focoActivo = false;
+    //console.log("🔴 Ventana SIN foco");
+}
+
+function ganaFoco() {
+    if (!focoActivo){
+        const boton = document.querySelector('button[type="submit"], input[type="submit"]');
+        const id = boton ? boton.id : null;
+        const btn=document.getElementById(id);
+        btn.click();
+    }
+    focoActivo = true;
+    console.log("🟢 Ventana CON foco");
+}
+
+window.addEventListener("blur", pierdeFoco);
+window.addEventListener("focus", ganaFoco);
+
+document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+        pierdeFoco();
+    } else {
+        ganaFoco();
+    }
+});
+
 document.addEventListener('contextmenu', event => event.preventDefault());
 
 document.onkeydown = function(e) {
