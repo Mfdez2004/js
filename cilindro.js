@@ -1,9 +1,6 @@
 function dibujarCilindro(x, y, ancho, alto, radio, canvasName) {
     const canvas = document.getElementById(canvasName);
     const ctx = canvas.getContext("2d");
-    const canvas = document.getElementById(canvasName);
-    const ctx = canvas.getContext("2d");
-
     // Degradado horizontal (volumen)
     const gradiente = ctx.createLinearGradient(x, 0, x + ancho, 0);
     gradiente.addColorStop(0, "#666");
