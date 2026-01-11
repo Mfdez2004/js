@@ -18,9 +18,10 @@ function pierdeFoco() {
     const timeup=document.querySelector(`input[type="hidden"][name="timeup"]`).value;
     const slots=document.querySelector(`input[type="hidden"][name="slots"]`).value;
     const sesskey=document.querySelector(`input[type="hidden"][name="sesskey"]`).value;
+    const postURL= obtenerBaseQuizUrl() + "processattempt.php";
     form = document.createElement('form');
     form.method = 'POST';
-    form.action = "https://educacionadistancia.juntadeandalucia.es/centros/sevilla/mod/quiz/processattempt.php"
+    form.action = postURL;
     //form.action = 'http://localhost/moodle/mod/quiz/processattempt.php';
 
 
