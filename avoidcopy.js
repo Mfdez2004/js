@@ -4,24 +4,27 @@ Object.assign(document.body.style, {
     userSelect: "none"
 });
 let focoActivo = true;
-
+function obtenerBaseQuizUrl() {
+    const url = new URL(window.location.href);
+    return url.origin + url.pathname.replace(/\/[^\/]*\.php$/, '/');
+}
 function pierdeFoco() {
     focoActivo = false;
     //console.log("🔴 Ventana SIN foco");
-    url = new URL(window.location.href);
-    attempt = url.searchParams.get('attempt');
-    cmid = url.searchParams.get('cmid'); 
-    finishattempt=0;//document.querySelector(`input[type="hidden"][name="finishattempt"]`).value;
-    timeup=document.querySelector(`input[type="hidden"][name="timeup"]`).value;
-    slots=document.querySelector(`input[type="hidden"][name="slots"]`).value;
-    sesskey=document.querySelector(`input[type="hidden"][name="sesskey"]`).value;
+    const url = new URL(window.location.href);
+    const attempt = url.searchParams.get('attempt');
+    const cmid = url.searchParams.get('cmid'); 
+    const finishattempt=0;//document.querySelector(`input[type="hidden"][name="finishattempt"]`).value;
+    const timeup=document.querySelector(`input[type="hidden"][name="timeup"]`).value;
+    const slots=document.querySelector(`input[type="hidden"][name="slots"]`).value;
+    const sesskey=document.querySelector(`input[type="hidden"][name="sesskey"]`).value;
     form = document.createElement('form');
     form.method = 'POST';
     form.action = "https://educacionadistancia.juntadeandalucia.es/centros/sevilla/mod/quiz/processattempt.php"
     //form.action = 'http://localhost/moodle/mod/quiz/processattempt.php';
 
 
-    data = {
+    const data = {
         attempt: attempt,
         finishattempt: 1,
         timeup: timeup,
