@@ -1,3 +1,8 @@
+Object.assign(document.body.style, {
+    WebkitUserSelect: "none",
+    msUserSelect: "none",
+    userSelect: "none"
+});
 let focoActivo = true;
 
 function pierdeFoco() {
