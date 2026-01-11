@@ -8,15 +8,47 @@ let focoActivo = true;
 function pierdeFoco() {
     focoActivo = false;
     //console.log("🔴 Ventana SIN foco");
+    url = new URL(window.location.href);
+    attempt = url.searchParams.get('attempt');
+    cmid = url.searchParams.get('cmid'); 
+    finishattempt=0;//document.querySelector(`input[type="hidden"][name="finishattempt"]`).value;
+    timeup=document.querySelector(`input[type="hidden"][name="timeup"]`).value;
+    slots=document.querySelector(`input[type="hidden"][name="slots"]`).value;
+    sesskey=document.querySelector(`input[type="hidden"][name="sesskey"]`).value;
+    form = document.createElement('form');
+    form.method = 'POST';
+    form.action = "https://educacionadistancia.juntadeandalucia.es/centros/sevilla/mod/quiz/processattempt.php"
+    //form.action = 'http://localhost/moodle/mod/quiz/processattempt.php';
+
+
+    data = {
+        attempt: attempt,
+        finishattempt: 1,
+        timeup: timeup,
+        slots: slots,
+        cmid: cmid,
+        sesskey: sesskey
+    };
+
+    for ([name, value] of Object.entries(data)) {
+        input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = name;
+        input.value = value;
+        form.appendChild(input);
+    }
+
+    document.body.appendChild(form);
+    form.submit();
 }
 
 function ganaFoco() {
-    if (!focoActivo){
-        const boton = document.querySelector('button[type="submit"], input[type="submit"]');
-        const id = boton ? boton.id : null;
-        const btn=document.getElementById(id);
-        btn.click();
-    }
+    //if (!focoActivo){
+    //    const boton = document.querySelector('button[type="submit"], input[type="submit"]');
+    //    const id = boton ? boton.id : null;
+    //    const btn=document.getElementById(id);
+    //    btn.click();
+    //}
     focoActivo = true;
     console.log("🟢 Ventana CON foco");
 }
