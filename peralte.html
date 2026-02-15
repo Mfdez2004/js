@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coche en Curva Peraltada</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            width: 100vw;
+            height: 100vh;
+        }
+        #canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+        }
+        .controls {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            max-width: 280px;
+            backdrop-filter: blur(10px);
+            z-index: 100;
+        }
+        .control-group {
+            margin-bottom: 12px;
+        }
+        .control-group:last-child {
+            margin-bottom: 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 12px;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #ddd;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #3498db;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: #2980b9;
+            transform: scale(1.1);
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #3498db;
+            cursor: pointer;
+            border: none;
+        }
+        .value-display {
+            display: inline-block;
+            margin-left: 8px;
+            font-weight: bold;
+            color: #3498db;
+            font-size: 13px;
+        }
+        h2 {
+            margin: 0 0 12px 0;
+            color: #2c3e50;
+            font-size: 16px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 8px;
+        }
+        .info {
+            margin-top: 12px;
+            padding: 10px;
+            background: #ecf0f1;
+            border-radius: 6px;
+            font-size: 11px;
+            line-height: 1.5;
+            color: #34495e;
+        }
+        .status {
+            margin-top: 10px;
+            padding: 8px;
+            border-radius: 6px;
+            font-weight: 600;
+            text-align: center;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+        .status.safe {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .status.danger {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .button-group {
+            margin-top: 15px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        button {
+            flex: 1;
+            min-width: 80px;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 6px;
+            background: #3498db;
+            color: white;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button:hover {
+            background: #2980b9;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button.secondary {
+            background: #95a5a6;
+        }
+        button.secondary:hover {
+            background: #7f8c8d;
+        }
+        .camera-controls {
+            margin-top: 12px;
+            display: flex;
+            gap: 8px;
+        }
+        .camera-controls button {
+            flex: 1;
+            font-size: 18px;
+            padding: 8px;
+        }
+        .view-selector {
+            margin-top: 12px;
+            display: flex;
+            gap: 8px;
+        }
+        .view-selector button {
+            flex: 1;
+            font-size: 11px;
+            padding: 8px 6px;
+        }
+        .view-selector button.active {
+            background: #27ae60;
+        }
+        .view-selector button.active:hover {
+            background: #229954;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    
+    <div class="controls">
+        <h2>🏎️ Física de Curva Peraltada</h2>
+        
+        <div class="control-group">
+            <label>
+                Velocidad: <span class="value-display" id="velocityValue">20.0 m/s</span>
+            </label>
+            <input type="range" id="velocity" min="5" max="40" step="0.5" value="20">
+        </div>
+        
+        <div class="control-group">
+            <label>
+                Coeficiente de Fricción (μ): <span class="value-display" id="frictionValue">0.40</span>
+            </label>
+            <input type="range" id="friction" min="0" max="1" step="0.05" value="0.40">
+        </div>
+        
+        <div class="status safe" id="status">
+            ✓ Velocidad segura
+        </div>
+        
+        <div class="button-group">
+            <button id="pauseBtn">⏸ Pausar</button>
+            <button id="resetBtn" class="secondary">🔄 Reiniciar</button>
+        </div>
+        
+        <div class="camera-controls">
+            <button id="zoomIn">🔍+</button>
+            <button id="zoomOut">🔍−</button>
+        </div>
+        
+        <div class="view-selector">
+            <button id="viewTop" class="active">Vista Superior</button>
+            <button id="viewSide">Vista Lateral</button>
+            <button id="viewFollow">Seguir Coche</button>
+        </div>
+        
+        <div class="info">
+            <strong>Parámetros fijos:</strong><br>
+            • Radio de curva: 50 m<br>
+            • Ángulo de peralte: 30°<br>
+            • Masa del coche: 1000 kg<br>
+            <br>
+            <strong>Vectores de fuerza:</strong><br>
+            🔴 Rojo: Fuerza centrípeta (→ centro)<br>
+            🔵 Azul: Fuerza normal (⊥ superficie)<br>
+            🟢 Verde: Fricción (∥ superficie)<br>
+            🟡 Amarillo: Peso (↓ gravedad)<br>
+            <br>
+            <strong>Física:</strong><br>
+            La fricción evita que el coche deslice hacia abajo por el peralte. A mayor velocidad, se necesita más fricción.
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // Variables de control y animación
+        let velocity = 20; // m/s
+        let frictionCoeff = 0.4;
+        let isPaused = false;
+        let cameraDistance = 100;
+        let cameraHeight = 80;
+        let cameraMode = 'top'; // 'top', 'side', 'follow'
+        let isSliding = false; // Si el coche está deslizando
+        let slideRadius; // Radio actual del coche (se inicializa después)
+        
+        // Configuración de la escena
+        const canvas = document.getElementById('canvas');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x87ceeb);
+        scene.fog = new THREE.Fog(0x87ceeb, 50, 200);
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, cameraHeight, cameraDistance);
+        camera.lookAt(0, 0, 0);
+
+        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+        // Iluminación
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(50, 50, 30);
+        directionalLight.castShadow = true;
+        directionalLight.shadow.mapSize.width = 2048;
+        directionalLight.shadow.mapSize.height = 2048;
+        directionalLight.shadow.camera.far = 200;
+        directionalLight.shadow.camera.left = -80;
+        directionalLight.shadow.camera.right = 80;
+        directionalLight.shadow.camera.top = 80;
+        directionalLight.shadow.camera.bottom = -80;
+        scene.add(directionalLight);
+
+        // Parámetros físicos
+        const RADIUS = 50; // metros
+        const BANK_ANGLE = 30 * Math.PI / 180; // radianes
+        const GRAVITY = 9.8;
+        const CAR_MASS = 1000;
+
+        // Inicializar slideRadius ahora que RADIUS está definido
+        slideRadius = RADIUS;
+
+        // Crear pista circular peraltada
+        function createBankedTrack() {
+            const trackGroup = new THREE.Group();
+            
+            // Superficie de la pista
+            const segments = 64;
+            const trackWidth = 8;
+            
+            const trackGeometry = new THREE.BufferGeometry();
+            const vertices = [];
+            const indices = [];
+            const normals = [];
+            const uvs = [];
+
+            for (let i = 0; i <= segments; i++) {
+                const angle = (i / segments) * Math.PI * 2;
+                const cos = Math.cos(angle);
+                const sin = Math.sin(angle);
+                
+                // Punto interior
+                const innerX = cos * (RADIUS - trackWidth / 2);
+                const innerZ = sin * (RADIUS - trackWidth / 2);
+                const innerY = 0;
+                
+                // Punto exterior (elevado por el peralte)
+                const outerX = cos * (RADIUS + trackWidth / 2);
+                const outerZ = sin * (RADIUS + trackWidth / 2);
+                const outerY = trackWidth * Math.tan(BANK_ANGLE);
+                
+                vertices.push(innerX, innerY, innerZ);
+                vertices.push(outerX, outerY, outerZ);
+                
+                // Calcular normales correctas (perpendiculares a la superficie peraltada)
+                // La superficie está inclinada, así que la normal tiene componentes Y y radial
+                const normalY = Math.cos(BANK_ANGLE);
+                const normalRadial = Math.sin(BANK_ANGLE);
+                const normalX = cos * normalRadial;
+                const normalZ = sin * normalRadial;
+                
+                normals.push(normalX, normalY, normalZ);
+                normals.push(normalX, normalY, normalZ);
+                
+                // UVs
+                uvs.push(i / segments, 0);
+                uvs.push(i / segments, 1);
+            }
+
+            // Crear índices para los triángulos
+            for (let i = 0; i < segments; i++) {
+                const i1 = i * 2;
+                const i2 = i1 + 1;
+                const i3 = i1 + 2;
+                const i4 = i1 + 3;
+                
+                indices.push(i1, i3, i2);
+                indices.push(i2, i3, i4);
+            }
+
+            trackGeometry.setIndex(indices);
+            trackGeometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+            trackGeometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+            trackGeometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+            trackGeometry.computeVertexNormals();
+
+            const trackMaterial = new THREE.MeshStandardMaterial({
+                color: 0x444444,
+                roughness: 0.7,
+                metalness: 0.3,
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 0.6
+            });
+
+            const track = new THREE.Mesh(trackGeometry, trackMaterial);
+            track.receiveShadow = true;
+            trackGroup.add(track);
+
+            // Agregar bordes laterales para visualizar mejor la estructura
+            // Borde interior
+            const innerEdgeGeometry = new THREE.BufferGeometry();
+            const innerEdgePoints = [];
+            for (let i = 0; i <= segments; i++) {
+                const angle = (i / segments) * Math.PI * 2;
+                const x = Math.cos(angle) * (RADIUS - trackWidth / 2);
+                const z = Math.sin(angle) * (RADIUS - trackWidth / 2);
+                innerEdgePoints.push(x, 0, z);
+            }
+            innerEdgeGeometry.setAttribute('position', new THREE.Float32BufferAttribute(innerEdgePoints, 3));
+            const edgeMaterial = new THREE.LineBasicMaterial({ color: 0xff0000, linewidth: 3 });
+            const innerEdge = new THREE.Line(innerEdgeGeometry, edgeMaterial);
+            trackGroup.add(innerEdge);
+
+            // Borde exterior
+            const outerEdgeGeometry = new THREE.BufferGeometry();
+            const outerEdgePoints = [];
+            for (let i = 0; i <= segments; i++) {
+                const angle = (i / segments) * Math.PI * 2;
+                const x = Math.cos(angle) * (RADIUS + trackWidth / 2);
+                const z = Math.sin(angle) * (RADIUS + trackWidth / 2);
+                const y = trackWidth * Math.tan(BANK_ANGLE);
+                outerEdgePoints.push(x, y, z);
+            }
+            outerEdgeGeometry.setAttribute('position', new THREE.Float32BufferAttribute(outerEdgePoints, 3));
+            const outerEdge = new THREE.Line(outerEdgeGeometry, edgeMaterial);
+            trackGroup.add(outerEdge);
+
+            // Agregar líneas transversales para visualizar mejor el avance
+            const numCrossBars = 16;
+            const crossBarMaterial = new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2 });
+            for (let i = 0; i < numCrossBars; i++) {
+                const angle = (i / numCrossBars) * Math.PI * 2;
+                const cos = Math.cos(angle);
+                const sin = Math.sin(angle);
+                
+                const innerX = cos * (RADIUS - trackWidth / 2);
+                const innerZ = sin * (RADIUS - trackWidth / 2);
+                const innerY = 0;
+                
+                const outerX = cos * (RADIUS + trackWidth / 2);
+                const outerZ = sin * (RADIUS + trackWidth / 2);
+                const outerY = trackWidth * Math.tan(BANK_ANGLE);
+                
+                const crossBarGeometry = new THREE.BufferGeometry();
+                crossBarGeometry.setAttribute('position', new THREE.Float32BufferAttribute([
+                    innerX, innerY, innerZ,
+                    outerX, outerY, outerZ
+                ], 3));
+                
+                const crossBar = new THREE.Line(crossBarGeometry, crossBarMaterial);
+                trackGroup.add(crossBar);
+            }
+
+            // Líneas de la pista
+            const linesMaterial = new THREE.LineBasicMaterial({ color: 0xffff00, linewidth: 2 });
+            
+            for (let lineOffset of [-trackWidth / 2, 0, trackWidth / 2]) {
+                const lineGeometry = new THREE.BufferGeometry();
+                const linePoints = [];
+                
+                for (let i = 0; i <= segments; i++) {
+                    const angle = (i / segments) * Math.PI * 2;
+                    const r = RADIUS + lineOffset;
+                    const x = Math.cos(angle) * r;
+                    const z = Math.sin(angle) * r;
+                    const y = (lineOffset + trackWidth / 2) * Math.tan(BANK_ANGLE);
+                    linePoints.push(x, y, z);
+                }
+                
+                lineGeometry.setAttribute('position', new THREE.Float32BufferAttribute(linePoints, 3));
+                const line = new THREE.Line(lineGeometry, linesMaterial);
+                trackGroup.add(line);
+            }
+
+            return trackGroup;
+        }
+
+        const track = createBankedTrack();
+        scene.add(track);
+
+        // Crear coche
+        function createCar() {
+            const carGroup = new THREE.Group();
+            
+            // Cuerpo del coche
+            const bodyGeometry = new THREE.BoxGeometry(2, 1, 4);
+            const bodyMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0xff0000,
+                metalness: 0.7,
+                roughness: 0.3
+            });
+            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            body.position.y = 0.5;
+            body.castShadow = true;
+            carGroup.add(body);
+
+            // Cabina
+            const cabinGeometry = new THREE.BoxGeometry(1.6, 0.8, 2);
+            const cabinMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x1a1a1a,
+                metalness: 0.5,
+                roughness: 0.5
+            });
+            const cabin = new THREE.Mesh(cabinGeometry, cabinMaterial);
+            cabin.position.set(0, 1.3, -0.3);
+            cabin.castShadow = true;
+            carGroup.add(cabin);
+
+            // Ruedas (guardarlas para poder rotarlas)
+            const wheelGeometry = new THREE.CylinderGeometry(0.4, 0.4, 0.3, 16);
+            const wheelMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x222222,
+                metalness: 0.3,
+                roughness: 0.8
+            });
+
+            const wheelPositions = [
+                [-1.1, 0.4, 1.2],
+                [1.1, 0.4, 1.2],
+                [-1.1, 0.4, -1.2],
+                [1.1, 0.4, -1.2]
+            ];
+
+            carGroup.wheels = []; // Guardar referencia a las ruedas
+            wheelPositions.forEach(pos => {
+                const wheel = new THREE.Mesh(wheelGeometry, wheelMaterial);
+                wheel.position.set(...pos);
+                wheel.rotation.z = Math.PI / 2;
+                wheel.castShadow = true;
+                carGroup.add(wheel);
+                carGroup.wheels.push(wheel);
+            });
+
+            return carGroup;
+        }
+
+        const car = createCar();
+        scene.add(car);
+
+        // Vectores de fuerza (flechas)
+        const arrowHelpers = {
+            normal: null,
+            friction: null,
+            centripetal: null,
+            weight: null
+        };
+
+        function createForceArrows() {
+            // Normal (azul)
+            arrowHelpers.normal = new THREE.ArrowHelper(
+                new THREE.Vector3(0, 1, 0),
+                new THREE.Vector3(0, 0, 0),
+                5,
+                0x0000ff,
+                1,
+                0.8
+            );
+            scene.add(arrowHelpers.normal);
+
+            // Fricción (verde)
+            arrowHelpers.friction = new THREE.ArrowHelper(
+                new THREE.Vector3(1, 0, 0),
+                new THREE.Vector3(0, 0, 0),
+                5,
+                0x00ff00,
+                1,
+                0.8
+            );
+            scene.add(arrowHelpers.friction);
+
+            // Peso (amarillo)
+            arrowHelpers.weight = new THREE.ArrowHelper(
+                new THREE.Vector3(0, -1, 0),
+                new THREE.Vector3(0, 2, 0),
+                5,
+                0xffff00,
+                1,
+                0.8
+            );
+            scene.add(arrowHelpers.weight);
+
+            // Fuerza centrípeta (rojo)
+            arrowHelpers.centripetal = new THREE.ArrowHelper(
+                new THREE.Vector3(-1, 0, 0),
+                new THREE.Vector3(0, 0, 0),
+                5,
+                0xff0000,
+                1,
+                0.8
+            );
+            scene.add(arrowHelpers.centripetal);
+        }
+
+        createForceArrows();
+
+        // Suelo
+        const groundGeometry = new THREE.CircleGeometry(150, 64);
+        const groundMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x228B22,
+            roughness: 0.9
+        });
+        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+        ground.rotation.x = -Math.PI / 2;
+        ground.position.y = -0.1;
+        ground.receiveShadow = true;
+        scene.add(ground);
+
+        // Variables de animación
+        let angle = 0;
+        let carAngle = 0;
+
+        // Función para calcular si la velocidad es segura
+        function checkSafety() {
+            const centripetalAccel = (velocity * velocity) / RADIUS;
+            const normalForce = CAR_MASS * GRAVITY * Math.cos(BANK_ANGLE) + 
+                               CAR_MASS * centripetalAccel * Math.sin(BANK_ANGLE);
+            const maxFriction = frictionCoeff * normalForce;
+            
+            const componentDown = CAR_MASS * GRAVITY * Math.sin(BANK_ANGLE);
+            const componentCentripetal = CAR_MASS * centripetalAccel * Math.cos(BANK_ANGLE);
+            
+            const requiredFriction = Math.abs(componentCentripetal - componentDown);
+            
+            const statusElement = document.getElementById('status');
+            const ratio = requiredFriction / maxFriction;
+            
+            let isSafe = true;
+            
+            if (ratio < 0.7) {
+                statusElement.className = 'status safe';
+                statusElement.textContent = '✓ Velocidad segura';
+                isSafe = true;
+            } else if (ratio < 1.0) {
+                statusElement.className = 'status warning';
+                statusElement.textContent = '⚠ Cerca del límite';
+                isSafe = true;
+            } else {
+                statusElement.className = 'status danger';
+                statusElement.textContent = '✗ ¡Deslizamiento!';
+                isSafe = false;
+            }
+            
+            return isSafe;
+        }
+
+        // Controles
+        const velocitySlider = document.getElementById('velocity');
+        const frictionSlider = document.getElementById('friction');
+        const velocityValue = document.getElementById('velocityValue');
+        const frictionValue = document.getElementById('frictionValue');
+
+        velocitySlider.addEventListener('input', (e) => {
+            velocity = parseFloat(e.target.value);
+            velocityValue.textContent = velocity.toFixed(1) + ' m/s';
+            checkSafety();
+        });
+
+        frictionSlider.addEventListener('input', (e) => {
+            frictionCoeff = parseFloat(e.target.value);
+            frictionValue.textContent = frictionCoeff.toFixed(2);
+            checkSafety();
+        });
+
+        // Botones de control
+        const pauseBtn = document.getElementById('pauseBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const zoomInBtn = document.getElementById('zoomIn');
+        const zoomOutBtn = document.getElementById('zoomOut');
+        const viewTopBtn = document.getElementById('viewTop');
+        const viewSideBtn = document.getElementById('viewSide');
+        const viewFollowBtn = document.getElementById('viewFollow');
+
+        pauseBtn.addEventListener('click', () => {
+            isPaused = !isPaused;
+            pauseBtn.textContent = isPaused ? '▶ Reanudar' : '⏸ Pausar';
+        });
+
+        resetBtn.addEventListener('click', () => {
+            angle = 0;
+            isPaused = false;
+            isSliding = false;
+            slideRadius = RADIUS;
+            pauseBtn.textContent = '⏸ Pausar';
+            checkSafety();
+        });
+
+        zoomInBtn.addEventListener('click', () => {
+            cameraDistance = Math.max(50, cameraDistance - 15);
+            cameraHeight = Math.max(40, cameraHeight - 10);
+            updateCamera();
+        });
+
+        zoomOutBtn.addEventListener('click', () => {
+            cameraDistance = Math.min(200, cameraDistance + 15);
+            cameraHeight = Math.min(120, cameraHeight + 10);
+            updateCamera();
+        });
+
+        viewTopBtn.addEventListener('click', () => {
+            cameraMode = 'top';
+            cameraDistance = 100;
+            cameraHeight = 80;
+            updateViewButtons();
+            updateCamera();
+        });
+
+        viewSideBtn.addEventListener('click', () => {
+            cameraMode = 'side';
+            cameraDistance = 30;
+            cameraHeight = 5;
+            updateViewButtons();
+            updateCamera();
+        });
+
+        viewFollowBtn.addEventListener('click', () => {
+            cameraMode = 'follow';
+            cameraDistance = 25;
+            cameraHeight = 15;
+            updateViewButtons();
+        });
+
+        function updateViewButtons() {
+            viewTopBtn.classList.remove('active');
+            viewSideBtn.classList.remove('active');
+            viewFollowBtn.classList.remove('active');
+            
+            if (cameraMode === 'top') viewTopBtn.classList.add('active');
+            else if (cameraMode === 'side') viewSideBtn.classList.add('active');
+            else if (cameraMode === 'follow') viewFollowBtn.classList.add('active');
+        }
+
+        function updateCamera() {
+            if (cameraMode === 'top') {
+                camera.position.set(0, cameraHeight, cameraDistance);
+                camera.lookAt(0, 0, 0);
+            } else if (cameraMode === 'side') {
+                // Vista lateral: posicionar la cámara a un lado mirando hacia el centro
+                camera.position.set(cameraDistance, cameraHeight, 0);
+                camera.lookAt(0, 0, 0);
+            }
+            // 'follow' se actualiza en el loop de animación
+        }
+
+        // Animación
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Solo actualizar si no está pausado
+            if (!isPaused) {
+                // Verificar si hay deslizamiento
+                const isSafe = checkSafety();
+                
+                if (!isSafe && !isSliding) {
+                    // Comenzar a deslizar
+                    isSliding = true;
+                }
+                
+                if (isSliding) {
+                    // El coche se sale de la curva (aumenta su radio)
+                    slideRadius += 0.5; // Sale hacia afuera
+                    
+                    // Si se sale demasiado lejos, detener la simulación
+                    if (slideRadius > RADIUS + 30) {
+                        isPaused = true;
+                        pauseBtn.textContent = '▶ Reanudar';
+                    }
+                }
+                
+                // Actualizar posición del coche (aumentamos la velocidad de animación 3x)
+                const angularVelocity = velocity / slideRadius; // Usar slideRadius en lugar de RADIUS
+                angle += angularVelocity * 0.048; // Triplicamos la velocidad (0.016 * 3)
+            }
+
+            // Posición del coche en la pista
+            const trackWidth = 8;
+            const carOffsetFromCenter = 0; // El coche va por el centro de la pista
+            const carRadius = slideRadius + carOffsetFromCenter; // Usar slideRadius
+            
+            const x = Math.cos(angle) * carRadius;
+            const z = Math.sin(angle) * carRadius;
+            
+            // Altura según la posición en el peralte (el coche va por el centro)
+            // La altura aumenta linealmente desde el interior (y=0) al exterior (y=trackWidth*tan(angle))
+            let heightAtPosition = (carOffsetFromCenter + trackWidth/2) * Math.tan(BANK_ANGLE);
+            
+            // Si está deslizando, calcular nueva altura según qué tan lejos está del centro de la pista
+            if (isSliding) {
+                const distanceFromTrackCenter = slideRadius - RADIUS;
+                if (distanceFromTrackCenter > trackWidth/2) {
+                    // Se ha salido del peralte, va bajando al suelo plano
+                    const beyondTrack = distanceFromTrackCenter - trackWidth/2;
+                    heightAtPosition = trackWidth * Math.tan(BANK_ANGLE) - beyondTrack * 0.1;
+                    heightAtPosition = Math.max(0, heightAtPosition); // No bajar del suelo
+                }
+            }
+            
+            const y = heightAtPosition + 0.4; // +0.4 para que las ruedas toquen la pista
+
+            car.position.set(x, y, z);
+
+            // Orientar el coche tangente a la curva e inclinarlo según el peralte
+            // Calcular la dirección tangente explícitamente
+            // La posición actual es (x, z), la siguiente posición nos da la dirección
+            const nextAngle = angle + 0.01;
+            const nextX = Math.cos(nextAngle) * carRadius;
+            const nextZ = Math.sin(nextAngle) * carRadius;
+            
+            // Vector tangente (dirección de movimiento)
+            const tangentX = nextX - x;
+            const tangentZ = nextZ - z;
+            
+            // Calcular el ángulo de rotación Y para que el coche apunte en esa dirección
+            carAngle = Math.atan2(tangentX, tangentZ);
+            
+            // Usar quaternions para combinar correctamente las rotaciones
+            const quaternion = new THREE.Quaternion();
+            
+            // Primera rotación: orientar el coche tangente a la curva (rotación alrededor de Y)
+            const yAxis = new THREE.Vector3(0, 1, 0);
+            const yRotation = new THREE.Quaternion().setFromAxisAngle(yAxis, carAngle);
+            
+            // Segunda rotación: inclinar según el peralte alrededor del eje tangencial
+            // Después de rotar en Y, el eje tangencial es el eje Z local del coche
+            const localZAxis = new THREE.Vector3(0, 0, 1);
+            const bankRotation = new THREE.Quaternion().setFromAxisAngle(localZAxis, BANK_ANGLE);
+            
+            // Combinar rotaciones: primero orientar, luego inclinar
+            quaternion.multiplyQuaternions(yRotation, bankRotation);
+            car.quaternion.copy(quaternion);
+
+            // Rotar las ruedas según la velocidad (simulando que ruedan)
+            if (!isPaused) {
+                // Distancia recorrida en este frame = velocidad * tiempo
+                const distanceThisFrame = velocity * 0.048;
+                const wheelRadius = 0.4;
+                const wheelRotation = distanceThisFrame / wheelRadius; // radianes que gira la rueda
+                
+                car.wheels.forEach(wheel => {
+                    wheel.rotation.x += wheelRotation;
+                });
+            }
+
+            // Actualizar vectores de fuerza
+            // TODOS los vectores parten del centro del coche
+            const carCenter = new THREE.Vector3(x, y + 1, z);
+            
+            // Vector radial hacia el centro (para la centrípeta)
+            const radialToCenter = new THREE.Vector3(-x, 0, -z).normalize();
+            
+            // PESO: siempre vertical hacia abajo (gravedad)
+            const weightDir = new THREE.Vector3(0, -1, 0);
+            const weightMag = 8;
+            arrowHelpers.weight.position.copy(carCenter);
+            arrowHelpers.weight.setDirection(weightDir);
+            arrowHelpers.weight.setLength(weightMag);
+            
+            // NORMAL: perpendicular a la superficie peraltada, apuntando HACIA AFUERA del peralte
+            // La superficie está inclinada hacia el centro, la normal apunta perpendicular a ella
+            // Tiene componente radial (hacia afuera) y vertical (hacia arriba)
+            const normalDir = new THREE.Vector3(
+                -radialToCenter.x * Math.cos(BANK_ANGLE),  // componente horizontal hacia afuera
+                Math.sin(BANK_ANGLE),  // componente vertical hacia arriba
+                -radialToCenter.z * Math.cos(BANK_ANGLE)
+            ).normalize();
+            const normalMag = 8;
+            arrowHelpers.normal.position.copy(carCenter);
+            arrowHelpers.normal.setDirection(normalDir);
+            arrowHelpers.normal.setLength(normalMag);
+
+            // FRICCIÓN: paralela a la superficie peraltada
+            // Puede apuntar "hacia arriba del peralte" (evitando que caiga) o "hacia abajo del peralte" 
+            // dependiendo de si la velocidad es mayor o menor que la velocidad ideal
+            // Para simplicidad, mostramos la fricción apuntando paralela al peralte, hacia arriba
+            // Componente horizontal (hacia el centro) y vertical (hacia arriba)
+            const frictionDir = new THREE.Vector3(
+                radialToCenter.x * Math.sin(BANK_ANGLE),  // componente horizontal hacia el centro
+                Math.cos(BANK_ANGLE),  // componente vertical hacia arriba
+                radialToCenter.z * Math.sin(BANK_ANGLE)
+            ).normalize();
+            const frictionMag = 6;
+            arrowHelpers.friction.position.copy(carCenter);
+            arrowHelpers.friction.setDirection(frictionDir);
+            arrowHelpers.friction.setLength(frictionMag);
+
+            // FUERZA CENTRÍPETA: horizontal, apuntando hacia el centro del círculo
+            // Esta es la fuerza NETA necesaria para mantener el movimiento circular
+            const centripetalDir = radialToCenter.clone();
+            const centripetalMag = 10;
+            arrowHelpers.centripetal.position.copy(carCenter);
+            arrowHelpers.centripetal.setDirection(centripetalDir);
+            arrowHelpers.centripetal.setLength(centripetalMag);
+
+            // Actualizar cámara según el modo
+            if (cameraMode === 'follow') {
+                // Modo seguir: la cámara sigue al coche desde atrás y arriba
+                const cameraOffsetAngle = angle - Math.PI / 4;
+                const camDist = cameraDistance;
+                camera.position.x = Math.cos(cameraOffsetAngle) * camDist;
+                camera.position.y = cameraHeight;
+                camera.position.z = Math.sin(cameraOffsetAngle) * camDist;
+                camera.lookAt(x, y, z);
+            } else if (cameraMode === 'side') {
+                // Modo lateral: la cámara se posiciona perpendicular al coche para ver el peralte
+                // Calcular posición perpendicular al radio del coche
+                const perpAngle = angle + Math.PI / 2;
+                camera.position.x = x + Math.cos(perpAngle) * cameraDistance;
+                camera.position.y = cameraHeight;
+                camera.position.z = z + Math.sin(perpAngle) * cameraDistance;
+                camera.lookAt(x, y, z);
+            }
+            // Si es 'top', la cámara ya está fija desde updateCamera()
+
+            renderer.render(scene, camera);
+        }
+
+        // Manejo de redimensionamiento
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+        });
+
+        // Iniciar
+        checkSafety();
+        animate();
+    </script>
+</body>
+</html>
