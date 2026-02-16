@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulación Física - Honda</title>
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            font-family: Arial, sans-serif;
+            background: #0a0a0a;
+        }
+        #canvas-container { width: 100vw; height: 100vh; }
+        #controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 1;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            color: white;
+        }
+        button {
+            margin: 5px;
+            padding: 10px 15px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover { background: #c0392b; }
+        button:disabled { 
+            background: #555;
+            cursor: not-allowed;
+        }
+        #info {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+        }
+        .control-group {
+            margin: 10px 0;
+        }
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input[type="range"] {
+            width: 200px;
+        }
+        #legend {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            color: white;
+            font-size: 12px;
+        }
+        .legend-item {
+            margin: 5px 0;
+            display: flex;
+            align-items: center;
+        }
+        .legend-color {
+            width: 20px;
+            height: 3px;
+            margin-right: 8px;
+            display: inline-block;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+    <div id="canvas-container"></div>
+    
+    <div id="controls">
+        <h3 style="margin-top: 0;">🎯 Control de Péndulo cónico</h3>
+        <div class="control-group">
+            <label>Velocidad Angular: <span id="speed-value">2.5</span> rad/s</label>
+            <input type="range" id="speed" min="1" max="5" step="0.1" value="2.5">
+        </div>
+        <div class="control-group">
+            <label>Longitud Cuerda: <span id="length-value">2.5</span> m</label>
+            <input type="range" id="length" min="1.5" max="4" step="0.1" value="2.5">
+        </div>
+        <button id="launch" style="background: #27ae60; font-size: 16px;">🚀 LANZAR PROYECTIL</button>
+        <button id="reset" style="background: #3498db;">🔄 REINICIAR</button>
+        <hr>
+        <button id="follow-view">Seguir Honda</button>
+        <button id="transversal-view">Vista Lateral</button>
+        <button id="top-view">Vista Cenital</button>
+        <button id="selfie-view">Vista Selfie 🤳</button>
+    </div>
+
+    <div id="info">
+        <h3 style="margin-top: 0;">📊 Estado</h3>
+        <div><strong>Estado:</strong> <span id="status">Girando</span></div>
+        <div><strong>Ángulo cono:</strong> <span id="angle">0</span>°</div>
+        <div><strong>Velocidad tangencial:</strong> <span id="vel-tang">0</span> m/s</div>
+    </div>
+
+    <div id="legend">
+        <h3 style="margin-top: 0;">Leyenda</h3>
+        <div class="legend-item">
+            <span class="legend-color" style="background: #ff0000;"></span>
+            <span>Peso (Gravedad)</span>
+        </div>
+        <div class="legend-item">
+            <span class="legend-color" style="background: #00ff00;"></span>
+            <span>Tensión de la cuerda</span>
+        </div>
+        <div class="legend-item">
+            <span class="legend-color" style="background: #ffaa00;"></span>
+            <span>Trayectoria proyectil</span>
+        </div>
+    </div>
+
+    <script>
+        // Configuración de la escena
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x1a1a2e);
+        
+        // Agregar niebla para profundidad
+        scene.fog = new THREE.Fog(0x1a1a2e, 10, 50);
+        
+        const camera = new THREE.PerspectiveCamera(
+            75,
+            window.innerWidth / window.innerHeight,
+            0.1,
+            1000
+        );
+        camera.position.set(8, 4, 8);
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
+        
+        // Iluminación
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
+        
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(10, 10, 5);
+        directionalLight.castShadow = true;
+        directionalLight.shadow.camera.left = -20;
+        directionalLight.shadow.camera.right = 20;
+        directionalLight.shadow.camera.top = 20;
+        directionalLight.shadow.camera.bottom = -20;
+        scene.add(directionalLight);
+        
+        // Suelo
+        const groundGeometry = new THREE.PlaneGeometry(100, 100);
+        const groundMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x2c3e50,
+            roughness: 0.8
+        });
+        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+        ground.rotation.x = -Math.PI / 2;
+        ground.position.y = -1;
+        ground.receiveShadow = true;
+        scene.add(ground);
+        
+        // Mano del hondero (punto de anclaje)
+        const handGeometry = new THREE.SphereGeometry(0.15, 32, 32);
+        const handMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0xffd700,
+            metalness: 0.3,
+            roughness: 0.4
+        });
+        const hand = new THREE.Mesh(handGeometry, handMaterial);
+        hand.position.set(0, 2, 0);
+        hand.castShadow = true;
+        scene.add(hand);
+        
+        // Cuerda de la honda
+        const ropeMaterial = new THREE.LineBasicMaterial({ 
+            color: 0x8b4513,
+            linewidth: 3
+        });
+        const ropeGeometry = new THREE.BufferGeometry();
+        const ropePoints = [new THREE.Vector3(0, 2, 0), new THREE.Vector3(0, 0, 0)];
+        ropeGeometry.setFromPoints(ropePoints);
+        const rope = new THREE.Line(ropeGeometry, ropeMaterial);
+        scene.add(rope);
+        
+        // Proyectil de la honda (piedra)
+        const projectileGeometry = new THREE.SphereGeometry(0.2, 32, 32);
+        const projectileMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x7f8c8d,
+            metalness: 0.2,
+            roughness: 0.8
+        });
+        const projectile = new THREE.Mesh(projectileGeometry, projectileMaterial);
+        projectile.position.set(0, 0, 0);
+        projectile.castShadow = true;
+        scene.add(projectile);
+        
+        // Bolsa de la honda (pequeña bolsa de cuero)
+        const pouchGeometry = new THREE.SphereGeometry(0.25, 16, 16);
+        const pouchMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x8b4513,
+            roughness: 0.9
+        });
+        const pouch = new THREE.Mesh(pouchGeometry, pouchMaterial);
+        scene.add(pouch);
+        
+        // Variables de simulación
+        const g = 9.81; // Gravedad (m/s²)
+        let angularVelocity = 2.5;
+        let ropeLength = 2.5;
+        let coneAngle = Math.PI / 6;
+        let time = 0;
+        let isLaunched = false;
+        let projectileVelocity = new THREE.Vector3();
+        let cameraMode = 'follow';
+        
+        // Trayectoria del proyectil
+        const trajectoryPoints = [];
+        let trajectoryLine = null;
+        
+        // Flechas de fuerzas
+        const forceArrows = [];
+
+        // Función para calcular el ángulo del cono
+        function calculateConeAngle() {
+            const omega = angularVelocity;
+            const L = ropeLength;
+            const cosTheta = g / (omega * omega * L);
+            if (cosTheta >= 1) return 0.1; // Ángulo mínimo
+            return Math.acos(Math.min(cosTheta, 0.99));
+        }
+
+        // Función para actualizar las fuerzas
+        function updateForces() {
+            // Eliminar flechas anteriores
+            forceArrows.forEach(arrow => scene.remove(arrow));
+            forceArrows.length = 0;
+
+            if (!isLaunched) {
+                // Fuerza de gravedad (peso)
+                const gravityDirection = new THREE.Vector3(0, -1, 0);
+                const gravityArrow = new THREE.ArrowHelper(
+                    gravityDirection, 
+                    projectile.position.clone(), 
+                    1.5, 
+                    0xff0000, 
+                    0.3, 
+                    0.2
+                );
+                forceArrows.push(gravityArrow);
+                scene.add(gravityArrow);
+
+                // Tensión de la cuerda
+                const tensionDirection = new THREE.Vector3()
+                    .subVectors(hand.position, projectile.position)
+                    .normalize();
+                const tensionArrow = new THREE.ArrowHelper(
+                    tensionDirection, 
+                    projectile.position.clone(), 
+                    2.0, 
+                    0x00ff00, 
+                    0.3, 
+                    0.2
+                );
+                forceArrows.push(tensionArrow);
+                scene.add(tensionArrow);
+            }
+        }
+
+        // Función de animación
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            if (!isLaunched) {
+                // Movimiento circular de la honda
+                time += 0.016 * angularVelocity;
+                coneAngle = calculateConeAngle();
+                
+                const radius = ropeLength * Math.sin(coneAngle);
+                const height = hand.position.y - ropeLength * Math.cos(coneAngle);
+                const x = radius * Math.cos(time);
+                const z = radius * Math.sin(time);
+                const y = height;
+
+                projectile.position.set(x, y, z);
+                pouch.position.copy(projectile.position);
+                
+                // Actualizar cuerda
+                const ropePoints = [hand.position, projectile.position];
+                rope.geometry.setFromPoints(ropePoints);
+                rope.visible = true;
+                pouch.visible = true;
+
+                // Actualizar las fuerzas
+                updateForces();
+                
+                // Actualizar info
+                document.getElementById('angle').textContent = (coneAngle * 180 / Math.PI).toFixed(1);
+                const vTangential = angularVelocity * radius;
+                document.getElementById('vel-tang').textContent = vTangential.toFixed(2);
+                document.getElementById('status').textContent = 'Girando 🌀';
+            } else {
+                // Movimiento parabólico del proyectil lanzado
+                const dt = 0.016;
+                projectileVelocity.y -= g * dt;
+                projectile.position.add(projectileVelocity.clone().multiplyScalar(dt));
+                
+                // Guardar puntos de la trayectoria
+                trajectoryPoints.push(projectile.position.clone());
+                
+                // Actualizar línea de trayectoria
+                if (trajectoryLine) scene.remove(trajectoryLine);
+                const trajectoryGeometry = new THREE.BufferGeometry().setFromPoints(trajectoryPoints);
+                const trajectoryMaterial = new THREE.LineBasicMaterial({ 
+                    color: 0xffaa00,
+                    linewidth: 2
+                });
+                trajectoryLine = new THREE.Line(trajectoryGeometry, trajectoryMaterial);
+                scene.add(trajectoryLine);
+                
+                rope.visible = false;
+                pouch.visible = false;
+                
+                // Detener si toca el suelo
+                if (projectile.position.y < -0.8) {
+                    projectile.position.y = -0.8;
+                    projectileVelocity.set(0, 0, 0);
+                    document.getElementById('status').textContent = '💥 Impactado';
+                    document.getElementById('launch').disabled = false;
+                }
+            }
+
+            // Actualizar cámara
+            updateCamera();
+
+            renderer.render(scene, camera);
+        }
+        
+        // Actualizar posición de cámara según el modo
+        function updateCamera() {
+            if (isLaunched && cameraMode === 'follow') {
+                // Seguir el proyectil cuando está lanzado
+                const offset = new THREE.Vector3(5, 3, 5);
+                camera.position.copy(projectile.position).add(offset);
+                camera.lookAt(projectile.position);
+                return;
+            }
+            
+            const x = projectile.position.x;
+            const z = projectile.position.z;
+            const y = projectile.position.y;
+            
+            switch(cameraMode) {
+                case 'follow':
+                    camera.position.set(x + 5, 4, z + 5);
+                    camera.lookAt(projectile.position);
+                    break;
+                case 'transversal':
+                    camera.position.set(8, 2, 0);
+                    camera.lookAt(0, 2, 0);
+                    break;
+                case 'top':
+                    camera.position.set(0, 12, 0);
+                    camera.lookAt(0, 1, 0);
+                    break;
+                case 'selfie':
+                    // Vista lateral perpendicular para ver el ángulo
+                    const tangentialDistance = 5;
+                    const cameraX = x - tangentialDistance * Math.sin(time);
+                    const cameraZ = z + tangentialDistance * Math.cos(time);
+                    const cameraY = (y + hand.position.y) / 2;
+                    camera.position.set(cameraX, cameraY, cameraZ);
+                    const midPoint = new THREE.Vector3(
+                        (x + hand.position.x) / 2,
+                        (y + hand.position.y) / 2,
+                        (z + hand.position.z) / 2
+                    );
+                    camera.lookAt(midPoint);
+                    break;
+            }
+        }
+        
+        // Función para lanzar el proyectil
+        function launchProjectile() {
+            if (isLaunched) return;
+            
+            isLaunched = true;
+            document.getElementById('launch').disabled = true;
+            document.getElementById('status').textContent = '🚀 Lanzado!';
+            
+            // Calcular velocidad inicial tangencial
+            const radius = ropeLength * Math.sin(coneAngle);
+            const vTangential = angularVelocity * radius;
+            
+            // Velocidad en dirección tangencial (perpendicular al radio)
+            projectileVelocity.set(
+                -vTangential * Math.sin(time),
+                0,
+                vTangential * Math.cos(time)
+            );
+            
+            // Añadir componente vertical inicial
+            projectileVelocity.y = 2;
+            
+            trajectoryPoints.length = 0;
+            trajectoryPoints.push(projectile.position.clone());
+        }
+        
+        // Función para reiniciar
+        function reset() {
+            isLaunched = false;
+            time = 0;
+            projectileVelocity.set(0, 0, 0);
+            trajectoryPoints.length = 0;
+            if (trajectoryLine) {
+                scene.remove(trajectoryLine);
+                trajectoryLine = null;
+            }
+            document.getElementById('launch').disabled = false;
+            document.getElementById('status').textContent = 'Girando 🌀';
+        }
+        
+        // Cambiar modos de cámara
+        function switchToFollowView() { cameraMode = 'follow'; }
+        function switchToTransversalView() { cameraMode = 'transversal'; }
+        function switchToTopView() { cameraMode = 'top'; }
+        function switchToSelfieView() { cameraMode = 'selfie'; }
+
+        // Eventos de controles
+        document.getElementById('speed').addEventListener('input', (e) => {
+            angularVelocity = parseFloat(e.target.value);
+            document.getElementById('speed-value').textContent = angularVelocity.toFixed(1);
+        });
+        
+        document.getElementById('length').addEventListener('input', (e) => {
+            ropeLength = parseFloat(e.target.value);
+            document.getElementById('length-value').textContent = ropeLength.toFixed(1);
+        });
+        
+        document.getElementById('launch').addEventListener('click', launchProjectile);
+        document.getElementById('reset').addEventListener('click', reset);
+        
+        document.getElementById('follow-view').addEventListener('click', switchToFollowView);
+        document.getElementById('transversal-view').addEventListener('click', switchToTransversalView);
+        document.getElementById('top-view').addEventListener('click', switchToTopView);
+        document.getElementById('selfie-view').addEventListener('click', switchToSelfieView);
+        
+        // Redimensionar
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+        
+        // Iniciar animación
+        animate();
+    </script>
+</body>
+</html>
