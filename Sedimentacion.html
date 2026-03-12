@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Decantación Proporcional al Tamaño</title>
+    <style>
+        body { margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; background: #eee; }
+        canvas { background: #e0f7fa; border: 2px solid #555; }
+    </style>
+</head>
+<body>
+
+
+<canvas id="simulador" width="400" height="500"></canvas>
+
+
+<script>
+const canvas = document.getElementById('simulador');
+const ctx = canvas.getContext('2d');
+
+
+const ancho = canvas.width;
+const alto = canvas.height;
+const particulas = [];
+let alturaSedimento = 0;
+
+
+class Particula {
+    constructor() {
+        // Radio aleatorio entre 2 y 8
+        this.r = Math.random() * 6 + 2;
+        this.x = Math.random() * (ancho - 20) + 10;
+        this.y = Math.random() * (alto - 150) + 50;
+        
+        // VELOCIDAD PROPORCIONAL AL TAMAÑO:
+        // Las más grandes (radio mayor) caen más rápido.
+        // Multiplicamos el radio por un factor para ajustar la velocidad.
+        this.velocidadCaida = this.r * 0.15; 
+        
+        this.fundida = false;
+        this.espera = Math.random() * 150;
+    }
+
+
+    actualizar() {
+        if (this.espera > 0) { this.espera--; return; }
+
+
+        if (!this.fundida) {
+            this.y += this.velocidadCaida; 
+            
+            // Colisión con el sedimento acumulado
+            if (this.y >= (alto - alturaSedimento - this.r)) {
+                this.fundida = true;
+                // El sedimento crece según el tamaño de la partícula que llega
+                alturaSedimento += (this.r * 0.2); 
+            }
+        }
+    }
+
+
+    dibujar() {
+        if (!this.fundida) {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+            ctx.fillStyle = "#333";
+            ctx.fill();
+        }
+    }
+}
+
+
+// Inicializar partículas
+for (let i = 0; i < 100; i++) {
+    particulas.push(new Particula());
+}
+
+
+function animar() {
+    ctx.clearRect(0, 0, ancho, alto);
+
+
+    // Fondo: Líquido
+    ctx.fillStyle = "#e0f7fa";
+    ctx.fillRect(0, 0, ancho, alto);
+
+
+    // Sedimento
+    ctx.fillStyle = "#333";
+    ctx.fillRect(0, alto - alturaSedimento, ancho, alturaSedimento);
+
+
+    particulas.forEach(p => {
+        p.actualizar();
+        p.dibujar();
+    });
+
+
+    requestAnimationFrame(animar);
+}
+
+
+animar();
+</script>
+</body>
+</html>

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Simulación Magnética Orgánica</title>
+    <style>
+        body { margin: 0; display: flex; flex-direction: column; align-items: center; background: #f0f0f0; font-family: sans-serif; }
+        #canvas-container { margin-top: 20px; border: 2px solid #555; background: #e0f7fa; }
+    </style>
+</head>
+<body>
+
+
+    <div style="margin-top: 10px;">
+        Y: <input type="range" id="ySlider" min="20" max="450" value="50">
+        X: <input type="range" id="xSlider" min="50" max="450" value="250">
+    </div>
+
+
+    <div id="canvas-container">
+        <canvas id="simulador" width="500" height="600"></canvas>
+    </div>
+
+
+<script>
+const canvas = document.getElementById('simulador');
+const ctx = canvas.getContext('2d');
+const particles = [];
+const iman = { x: 250, y: 50, w: 80, h: 20, radius: 150 };
+
+
+class Particle {
+    constructor(isMagnetic) {
+        this.r = 6;
+        this.isMagnetic = isMagnetic;
+        this.color = isMagnetic ? '#222' : '#aaa';
+        this.x = Math.random() * canvas.width;
+        this.y = canvas.height - 20 - Math.random() * 50;
+        this.vx = 0; this.vy = 0;
+        this.attached = false;
+    }
+
+
+    update() {
+        if (this.attached) {
+            // Se mantiene pegada al imán
+            this.x = iman.x + this.relX;
+            this.y = iman.y + this.relY;
+            return;
+        }
+
+
+        if (this.isMagnetic) {
+            let dx = iman.x - this.x;
+            let dy = (iman.y + iman.h) - this.y;
+            let dist = Math.hypot(dx, dy);
+
+
+            if (dist < iman.radius) {
+                // Atracción hacia el imán
+                this.vx += dx * 0.01;
+                this.vy += dy * 0.01;
+            }
+
+
+            // Detección de colisión con el imán o con partículas ya pegadas
+            if (dist < 30) {
+                this.attached = true;
+                // Posición relativa aleatoria pero cercana al imán para crear "cúmulo"
+                this.relX = (Math.random() - 0.5) * 60;
+                this.relY = 20 + Math.random() * 30;
+            }
+        }
+        
+        this.x += this.vx; this.y += this.vy;
+        this.vx *= 0.9; this.vy *= 0.9; // Fricción del líquido
+    }
+
+
+    draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+        ctx.fillStyle = this.color;
+        ctx.fill();
+    }
+}
+
+
+// Crear partículas
+for(let i=0; i<150; i++) particles.push(new Particle(i % 3 === 0));
+
+
+function loop() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#C62828';
+    ctx.fillRect(iman.x - 40, iman.y, 80, 20);
+    
+    particles.forEach(p => { p.update(); p.draw(); });
+    requestAnimationFrame(loop);
+}
+
+
+document.getElementById('xSlider').oninput = e => iman.x = +e.target.value;
+document.getElementById('ySlider').oninput = e => iman.y = +e.target.value;
+loop();
+</script>
+</body>
+</html>

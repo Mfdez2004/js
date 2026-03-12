@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Centrífuga con Líquido</title>
+    <style>
+        body { margin: 0; display: flex; flex-direction: column; align-items: center; background: #282c34; color: white; font-family: sans-serif; }
+        #canvas { background: #1c1f24; border-radius: 10px; margin: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .controls { background: #3e4451; padding: 15px; border-radius: 8px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+
+    <div class="controls">
+        <label for="speedSlider">Velocidad:</label>
+        <input type="range" id="speedSlider" min="0" max="0.3" step="0.005" value="0.05">
+    </div>
+    
+    <canvas id="canvas" width="600" height="600"></canvas>
+
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const speedSlider = document.getElementById('speedSlider');
+
+
+let angle = 0;
+
+
+class Particula {
+    constructor() { this.reset(); }
+    reset() {
+        this.dist = Math.random() * 50; // Líquido está hasta el 75% (60px), partículas flotan ahí
+        this.masa = Math.random() > 0.5 ? 2.5 : 1;
+        this.offset = (Math.random() - 0.5) * 8;
+    }
+    update(speed) {
+        // Solo sedimentan si están dentro del líquido (dist < 60)
+        if (this.dist < 60) this.dist += (speed * speed * 20) * this.masa;
+    }
+}
+
+
+const tubos = Array.from({length: 4}, () => ({
+    particulas: Array.from({length: 20}, () => new Particula())
+}));
+
+
+function drawTube(x, y, angle) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+
+
+    // 1. Dibujar el líquido azul (75% del largo del tubo = 60px)
+    ctx.fillStyle = 'rgba(100, 150, 255, 0.6)';
+    ctx.fillRect(0, -10, 60, 20);
+    
+    // 2. Dibujar el cuerpo del tubo (vidrio transparente)
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(0, -10, 80, 20);
+    
+    // 3. Tapa naranja
+    ctx.fillStyle = '#ff5722';
+    ctx.fillRect(-5, -12, 5, 24);
+    
+    // 4. Base redondeada
+    ctx.beginPath();
+    ctx.arc(80, 0, 10, -Math.PI/2, Math.PI/2);
+    ctx.stroke();
+    ctx.restore();
+}
+
+
+function animar() {
+    ctx.clearRect(0, 0, 600, 600);
+    let speed = parseFloat(speedSlider.value);
+    angle += speed;
+
+
+    tubos.forEach((tubo, i) => {
+        let rot = angle + (i * Math.PI / 2);
+        let x = 300 + Math.cos(rot) * 40;
+        let y = 300 + Math.sin(rot) * 40;
+
+
+        drawTube(x, y, rot);
+
+
+        tubo.particulas.forEach(p => {
+            p.update(speed);
+            // Dibujar partículas solo si la posición es menor a la altura del líquido
+            if (p.dist <= 60) {
+                let px = x + Math.cos(rot) * (p.dist + 10) - Math.sin(rot) * p.offset;
+                let py = y + Math.sin(rot) * (p.dist + 10) + Math.cos(rot) * p.offset;
+                
+                ctx.fillStyle = p.masa > 2 ? '#000' : '#d1d1d1';
+                ctx.beginPath();
+                ctx.arc(px, py, 2.5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        });
+    });
+
+
+    requestAnimationFrame(animar);
+}
+
+
+animar();
+</script>
+</body>
+</html>

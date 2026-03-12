@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Separación y Fusión de Fases</title>
+    <style>
+        body { margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; background: #ddd; }
+        canvas { background: #e0f7fa; border: 2px solid #555; }
+    </style>
+</head>
+<body>
+
+
+<canvas id="simulador" width="400" height="500"></canvas>
+
+
+<script>
+const canvas = document.getElementById('simulador');
+const ctx = canvas.getContext('2d');
+
+
+const ancho = canvas.width;
+const alto = canvas.height;
+const particulas = [];
+let alturaFaseAmarilla = 0; // Esta variable crecerá al fundirse las partículas
+
+
+class Particula {
+    constructor() {
+        this.r = Math.random() * 4 + 2;
+        this.x = Math.random() * (ancho - 20) + 10;
+        this.y = Math.random() * (alto - 150) + 120;
+        this.velocidadSubida = Math.random() * 0.5 + 0.2;
+        this.fundida = false;
+        this.espera = Math.random() * 200;
+    }
+
+
+    actualizar() {
+        if (this.espera > 0) { this.espera--; return; }
+
+
+        if (!this.fundida) {
+            this.y -= this.velocidadSubida;
+            // Si llega a la zona superior (basada en el crecimiento de la fase)
+            if (this.y <= alturaFaseAmarilla + this.r) {
+                this.fundida = true;
+                alturaFaseAmarilla += 0.8; // La fase amarilla crece al absorber la partícula
+            }
+        }
+    }
+
+
+    dibujar() {
+        if (!this.fundida) {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+            ctx.fillStyle = "#FFEB3B";
+            ctx.fill();
+        }
+    }
+}
+
+
+// Inicializar partículas
+for (let i = 0; i < 100; i++) {
+    particulas.push(new Particula());
+}
+
+
+function animar() {
+    ctx.clearRect(0, 0, ancho, alto);
+
+
+    // Fondo: Líquido azul
+    ctx.fillStyle = "#e0f7fa";
+    ctx.fillRect(0, 0, ancho, alto);
+
+
+    // Dibujar Fase Amarilla acumulada (la mancha que crece)
+    ctx.fillStyle = "#FFEB3B";
+    ctx.fillRect(0, 0, ancho, alturaFaseAmarilla);
+
+
+    // Actualizar y dibujar partículas
+    particulas.forEach(p => {
+        p.actualizar();
+        p.dibujar();
+    });
+
+
+    requestAnimationFrame(animar);
+}
+
+
+animar();
+</script>
+</body>
+</html>

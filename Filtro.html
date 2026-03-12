@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Filtración Realista - Embudo Alemán</title>
+    <style>
+        body { margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; background: #e8e8e8; }
+        canvas { background: white; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body>
+    <canvas id="canvas" width="500" height="650"></canvas>
+
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+
+const config = {
+    conoX: 250, conoY: 100,
+    anchoTop: 180, altoCono: 150,
+    anchoVastago: 12, largoVastago: 200,
+    yFiltro: 220 // Altura exacta del papel de filtro
+};
+
+
+let particulas = [];
+let gotas = [];
+let nivelVaso = 0;
+
+
+class Particula {
+    constructor() {
+        this.reset();
+        this.y = Math.random() * -500; // Empezar muy arriba para flujo continuo
+    }
+
+
+    reset() {
+        this.r = Math.random() * 2 + 1.5;
+        this.x = config.conoX + (Math.random() - 0.5) * 100;
+        this.y = -20;
+        this.vy = Math.random() * 2 + 1;
+        this.vx = (Math.random() - 0.5) * 0.5;
+        this.atrapada = false;
+    }
+
+
+    actualizar() {
+        if (this.atrapada) return;
+
+
+        this.y += this.vy;
+        this.x += this.vx;
+
+
+        // 1. Lógica de las paredes del embudo (resbalar)
+        if (this.y > config.conoY && this.y < config.yFiltro) {
+            let progresoY = (this.y - config.conoY) / config.altoCono;
+            let anchoActual = config.anchoTop - (config.anchoTop - config.anchoVastago) * progresoY;
+            let limiteIzquierdo = config.conoX - anchoActual / 2;
+            let limiteDerecho = config.conoX + anchoActual / 2;
+
+
+            if (this.x < limiteIzquierdo + this.r) {
+                this.x = limiteIzquierdo + this.r;
+                this.vx = 0.5; // Rebote suave hacia adentro
+            } else if (this.x > limiteDerecho - this.r) {
+                this.x = limiteDerecho - this.r;
+                this.vx = -0.5;
+            }
+        }
+
+
+        // 2. Lógica de acumulación en el filtro
+        if (this.y >= config.yFiltro - this.r) {
+            // Verificar si hay "suelo" (el filtro o otras partículas)
+            // Aquí simplificamos: se detienen al llegar al nivel del filtro
+            // Para un efecto de montón, añadimos una pequeña variación aleatoria en Y
+            this.y = config.yFiltro - (Math.random() * 5); 
+            this.atrapada = true;
+            this.vx = 0;
+            this.vy = 0;
+        }
+    }
+
+
+    dibujar() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+        ctx.fillStyle = "#222";
+        ctx.fill();
+    }
+}
+
+
+function dibujarVidrio() {
+    ctx.strokeStyle = "rgba(150, 150, 150, 0.5)";
+    ctx.lineWidth = 3;
+
+
+    // Embudo
+    ctx.beginPath();
+    ctx.moveTo(config.conoX - config.anchoTop/2, config.conoY);
+    ctx.lineTo(config.conoX - config.anchoVastago/2, config.conoY + config.altoCono);
+    ctx.lineTo(config.conoX - config.anchoVastago/2, config.conoY + config.altoCono + config.largoVastago);
+    ctx.stroke();
+
+
+    ctx.beginPath();
+    ctx.moveTo(config.conoX + config.anchoTop/2, config.conoY);
+    ctx.lineTo(config.conoX + config.anchoVastago/2, config.conoY + config.altoCono);
+    ctx.lineTo(config.conoX + config.anchoVastago/2, config.conoY + config.altoCono + config.largoVastago - 10);
+    ctx.stroke();
+
+
+    // Filtro (Papel)
+    ctx.fillStyle = "#d2b48c";
+    ctx.beginPath();
+    let anchoEnFiltro = 55; // Aproximado por la altura del filtro
+    ctx.fillRect(config.conoX - anchoEnFiltro/2, config.yFiltro, anchoEnFiltro, 4);
+
+
+    // Vaso de precipitados
+    ctx.strokeRect(180, 500, 140, 120);
+    
+    // Líquido en el vaso
+    ctx.fillStyle = "#e0f7fa";
+    ctx.fillRect(182, 620 - nivelVaso, 136, nivelVaso);
+}
+
+
+function animar() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    dibujarVidrio();
+
+
+    // Líquido sucio en el embudo (arriba del filtro)
+    ctx.fillStyle = "rgba(0, 150, 255, 0.2)";
+    ctx.beginPath();
+    ctx.moveTo(180, 150); ctx.lineTo(320, 150);
+    ctx.lineTo(275, 220); ctx.lineTo(225, 220);
+    ctx.fill();
+
+
+    particulas.forEach(p => {
+        p.actualizar();
+        p.dibujar();
+    });
+
+
+    // Crear gotas si hay partículas en el filtro
+    if (Math.random() > 0.9 && particulas.some(p => p.atrapada)) {
+        gotas.push({x: config.conoX, y: 450, v: 5});
+    }
+
+
+    // Dibujar gotas y llenar vaso
+    ctx.fillStyle = "#b2ebf2";
+    gotas.forEach((g, i) => {
+        g.y += g.v;
+        ctx.beginPath();
+        ctx.arc(g.x, g.y, 3, 0, Math.PI*2);
+        ctx.fill();
+        if (g.y > 620 - nivelVaso) {
+            gotas.splice(i, 1);
+            if (nivelVaso < 110) nivelVaso += 0.5;
+        }
+    });
+
+
+    requestAnimationFrame(animar);
+}
+
+
+// Inicializar
+for(let i=0; i<150; i++) particulas.push(new Particula());
+animar();
+
+
+</script>
+</body>
+</html>
