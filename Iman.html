@@ -93,7 +93,9 @@ for(let i=0; i<150; i++) particles.push(new Particle(i % 3 === 0));
 function loop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = '#C62828';
-    ctx.fillRect(iman.x - 40, iman.y, 80, 20);
+    ctx.fillRect(iman.x - 40, iman.y, 40, 20);
+    ctx.fillStyle = '#2828C6';
+    ctx.fillRect(iman.x, iman.y, 40, 20);
     
     particles.forEach(p => { p.update(); p.draw(); });
     requestAnimationFrame(loop);
@@ -105,4 +107,5 @@ document.getElementById('ySlider').oninput = e => iman.y = +e.target.value;
 loop();
 </script>
 </body>
+
 </html>
