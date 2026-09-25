@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aventura de Multiplicar - Aprende y Practica</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts: Fredoka & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Canvas Confetti Library -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+
+  <!-- Phosphor Icons -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            fredoka: ['Fredoka', 'sans-serif'],
+            sans: ['Inter', 'sans-serif'],
+          },
+          keyframes: {
+            shake: {
+              '0%, 100%': { transform: 'translateX(0)' },
+              '20%, 60%': { transform: 'translateX(-8px)' },
+              '40%, 80%': { transform: 'translateX(8px)' },
+            },
+            pop: {
+              '0%': { transform: 'scale(0.8)', opacity: '0' },
+              '100%': { transform: 'scale(1)', opacity: '1' },
+            },
+            float: {
+              '0%, 100%': { transform: 'translateY(0px)' },
+              '50%': { transform: 'translateY(-6px)' },
+            }
+          },
+          animation: {
+            shake: 'shake 0.4s ease-in-out',
+            pop: 'pop 0.25s ease-out forwards',
+            float: 'float 3s ease-in-out infinite',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      user-select: none;
+    }
+    .font-fredoka {
+      font-family: 'Fredoka', sans-serif;
+    }
+    /* Hide scrollbars for clean UI */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between selection:bg-indigo-500 selection:text-white">
+
+  <!-- Header / Navigation -->
+  <header class="w-full max-w-5xl mx-auto p-4 flex items-center justify-between border-b border-slate-800">
+    <div class="flex items-center space-x-3 cursor-pointer" onclick="showScreen('setup-screen')">
+      <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-400 to-orange-500 flex items-center justify-center text-slate-900 font-fredoka font-bold text-xl shadow-lg shadow-orange-500/30">
+        ×
+      </div>
+      <div>
+        <h1 class="font-fredoka text-xl sm:text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-amber-300 via-orange-400 to-rose-400">
+          MathMaster
+        </h1>
+        <p class="text-xs text-slate-400 hidden sm:block">Aventura de Multiplicar</p>
+      </div>
+    </div>
+
+    <!-- Quick Tools -->
+    <div class="flex items-center space-x-2 sm:space-x-3">
+      <button onclick="toggleAudio()" id="audio-btn" title="Alternar Sonido" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all flex items-center justify-center border border-slate-700/50">
+        <i class="ph-bold ph-speaker-high text-lg" id="audio-icon"></i>
+      </button>
+      <button onclick="openModal('cheatsheet-modal')" class="px-3 py-2 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 text-xs sm:text-sm font-semibold transition-all flex items-center space-x-1.5">
+        <i class="ph-bold ph-table text-base"></i>
+        <span class="hidden sm:inline">Tabla Repaso</span>
+      </button>
+      <button onclick="openModal('stats-modal')" class="px-3 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-xs sm:text-sm font-semibold transition-all flex items-center space-x-1.5">
+        <i class="ph-bold ph-trophy text-base"></i>
+        <span class="hidden sm:inline">Récords</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="w-full max-w-4xl mx-auto px-4 py-6 flex-1 flex flex-col justify-center">
+
+    <!-- 1. SETUP SCREEN -->
+    <section id="setup-screen" class="space-y-8 animate-pop">
+      <!-- Welcome Hero -->
+      <div class="text-center space-y-2">
+        <h2 class="font-fredoka text-3xl sm:text-5xl font-extrabold text-white">
+          ¿Qué tabla quieres practicar hoy?
+        </h2>
+        <p class="text-slate-400 text-sm sm:text-base max-w-xl mx-auto">
+          Elige una tabla específica para dominarla o ponte a prueba con el modo aleatorio.
+        </p>
+      </div>
+
+      <!-- Table Selection Grid -->
+      <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-3" id="table-selector-grid">
+        <!-- JS dynamically populates this or we hardcode 1-12 + All -->
+      </div>
+
+      <!-- Config Panel -->
+      <div class="bg-slate-800/60 rounded-3xl p-5 sm:p-6 border border-slate-700/60 backdrop-blur-md space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          
+          <!-- Number of Questions -->
+          <div class="space-y-3">
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-400">
+              <i class="ph-bold ph-list-numbers mr-1 text-indigo-400"></i> Número de Preguntas
+            </label>
+            <div class="grid grid-cols-4 gap-2" id="questions-count-selector">
+              <button onclick="setQuestionsCount(5)" class="q-btn py-2.5 rounded-xl font-bold text-sm bg-slate-700 hover:bg-slate-600 border border-slate-600 text-slate-200 transition-all">5</button>
+              <button onclick="setQuestionsCount(10)" class="q-btn py-2.5 rounded-xl font-bold text-sm bg-indigo-600 border border-indigo-500 text-white shadow-lg shadow-indigo-500/25 transition-all">10</button>
+              <button onclick="setQuestionsCount(15)" class="q-btn py-2.5 rounded-xl font-bold text-sm bg-slate-700 hover:bg-slate-600 border border-slate-600 text-slate-200 transition-all">15</button>
+              <button onclick="setQuestionsCount(20)" class="q-btn py-2.5 rounded-xl font-bold text-sm bg-slate-700 hover:bg-slate-600 border border-slate-600 text-slate-200 transition-all">20</button>
+            </div>
+          </div>
+
+          <!-- Timer Mode -->
+          <div class="space-y-3">
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-400">
+              <i class="ph-bold ph-timer mr-1 text-amber-400"></i> Modo de Tiempo
+            </label>
+            <div class="grid grid-cols-3 gap-2" id="timer-mode-selector">
+              <button onclick="setTimerMode('none')" class="t-btn py-2.5 px-2 rounded-xl font-semibold text-xs sm:text-sm bg-indigo-600 border border-indigo-500 text-white shadow-lg shadow-indigo-500/25 transition-all">Sin tiempo</button>
+              <button onclick="setTimerMode('per-q')" class="t-btn py-2.5 px-2 rounded-xl font-semibold text-xs sm:text-sm bg-slate-700 hover:bg-slate-600 border border-slate-600 text-slate-200 transition-all">10s / preg</button>
+              <button onclick="setTimerMode('blitz')" class="t-btn py-2.5 px-2 rounded-xl font-semibold text-xs sm:text-sm bg-slate-700 hover:bg-slate-600 border border-slate-600 text-slate-200 transition-all">60s Total</button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Start Button -->
+        <button onclick="startGame()" class="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-slate-950 font-fredoka font-bold text-xl sm:text-2xl shadow-xl shadow-emerald-500/20 hover:shadow-emerald-500/35 transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center space-x-2">
+          <span>¡Comenzar Práctica!</span>
+          <i class="ph-bold ph-play"></i>
+        </button>
+      </div>
+    </section>
+
+    <!-- 2. GAMEPLAY SCREEN -->
+    <section id="game-screen" class="hidden space-y-6">
+      <!-- Status Top Bar -->
+      <div class="flex items-center justify-between bg-slate-800/80 rounded-2xl p-4 border border-slate-700/60 backdrop-blur-md">
+        <!-- Progress -->
+        <div class="flex items-center space-x-3">
+          <button onclick="quitGame()" title="Salir" class="p-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 transition-all">
+            <i class="ph-bold ph-x text-base"></i>
+          </button>
+          <div>
+            <div class="text-xs text-slate-400 font-semibold uppercase">Pregunta</div>
+            <div class="font-fredoka font-bold text-lg text-slate-100" id="game-progress-text">1 / 10</div>
+          </div>
+        </div>
+
+        <!-- Streak Badge -->
+        <div class="flex items-center space-x-2 bg-slate-900/80 px-4 py-2 rounded-xl border border-slate-700">
+          <i class="ph-fill ph-fire text-amber-500 text-xl animate-bounce"></i>
+          <span class="font-fredoka font-bold text-lg text-amber-400" id="streak-counter">0</span>
+        </div>
+
+        <!-- Score & Timer -->
+        <div class="flex items-center space-x-4">
+          <div id="timer-display-container" class="hidden text-right">
+            <div class="text-xs text-slate-400 font-semibold uppercase">Tiempo</div>
+            <div class="font-fredoka font-bold text-lg text-rose-400" id="game-timer">0s</div>
+          </div>
+          <div class="text-right">
+            <div class="text-xs text-slate-400 font-semibold uppercase">Puntos</div>
+            <div class="font-fredoka font-bold text-lg text-emerald-400" id="game-score">0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Progress Bar Container -->
+      <div class="w-full bg-slate-800 rounded-full h-3 overflow-hidden border border-slate-700/50 p-0.5">
+        <div id="progress-bar-inner" class="bg-gradient-to-r from-amber-400 via-emerald-400 to-teal-400 h-full rounded-full transition-all duration-300 w-0"></div>
+      </div>
+
+      <!-- Central Equation Card -->
+      <div id="equation-card" class="bg-slate-800/90 rounded-3xl p-8 sm:p-10 border border-slate-700/80 shadow-2xl text-center space-y-6 transition-transform relative overflow-hidden">
+        
+        <!-- Animated Background Glow -->
+        <div class="absolute -top-24 -left-24 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -bottom-24 -right-24 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="text-xs font-bold uppercase tracking-widest text-indigo-400" id="current-mode-badge">
+          Tabla del 7
+        </div>
+
+        <!-- Math Problem Display -->
+        <div class="flex items-center justify-center space-x-3 sm:space-x-6 font-fredoka text-5xl sm:text-7xl font-bold tracking-wide text-white">
+          <span id="factor-a" class="transform transition-transform">7</span>
+          <span class="text-amber-400">×</span>
+          <span id="factor-b" class="transform transition-transform">8</span>
+          <span class="text-slate-500">=</span>
+          
+          <!-- Answer Box -->
+          <div class="min-w-[100px] sm:min-w-[140px] px-3 py-1 rounded-2xl bg-slate-900 border-2 border-indigo-500/60 text-emerald-400 font-bold min-h-[70px] sm:min-h-[90px] flex items-center justify-center shadow-inner relative">
+            <span id="user-answer-display" class="animate-pulse">?</span>
+          </div>
+        </div>
+
+        <!-- Visual Feedback Indicator -->
+        <div id="feedback-message" class="h-6 font-fredoka font-semibold text-sm transition-all duration-200 text-transparent">
+          ¡Excelente!
+        </div>
+      </div>
+
+      <!-- Keypad Container -->
+      <div class="max-w-md mx-auto grid grid-cols-3 gap-2.5 sm:gap-3 pt-2">
+        <button onclick="appendNum('1')" class="keypad-btn py-3.5 sm:py-4 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-2xl font-fredoka font-bold text-slate-100 shadow-md active:scale-95 transition-all">1</button>
+        <button onclick="appendNum('2')" class="keypad-btn py-3.5 sm:py-4 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-2xl font-fredoka font-bold text-slate-100 shadow-md active:scale-95 transition-all">2</button>
+        <button onclick="appendNum('3')" class="keypad-btn py-3.5 sm:py-4 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-2xl font-fredoka font-bold text-slate-100 shadow-md active:scale-95 transition-all">3</button>
+        
+        <button onclick="appendNum('4')" class="keypad-btn py-3.5 sm:py-4 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-2xl font-fredoka font-bold text-slate-100 shadow-md active:scale-95 transition-all">4</button>
+        <button onclick="appendNum('5')" class="keypad-btn py-3.5 sm:py-4 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-2xl font-fredoka font-bold text-slate-100 shadow-md active:scale-95 transition-all">5</button>
+        <button onclick="appendNum('6')" class="keypad-btn py-3.5 sm:py-4 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-2xl font-fredoka font-bold text-slate-100 shadow-md active:scale-95 transition-all">6</button>
+        
+        <button onclick="appendNum('7')" class="keypad-btn py-3.5 sm:py-4 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-2xl font-fredoka font-bold text-slate-100 shadow-md active:scale-95 transition-all">7</button>
+        <button onclick="appendNum('8')" class="keypad-btn py-3.5 sm:py-4 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-2xl font-fredoka font-bold text-slate-100 shadow-md active:scale-95 transition-all">8</button>
+        <button onclick="appendNum('9')" class="keypad-btn py-3.5 sm:py-4 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-2xl font-fredoka font-bold text-slate-100 shadow-md active:scale-95 transition-all">9</button>
+        
+        <button onclick="deleteNum()" class="keypad-btn py-3.5 sm:py-4 rounded-2xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/30 text-rose-400 text-xl font-bold active:scale-95 transition-all flex items-center justify-center">
+          <i class="ph-bold ph-backspace"></i>
+        </button>
+        <button onclick="appendNum('0')" class="keypad-btn py-3.5 sm:py-4 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-2xl font-fredoka font-bold text-slate-100 shadow-md active:scale-95 transition-all">0</button>
+        <button onclick="submitAnswer()" class="keypad-btn py-3.5 sm:py-4 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-2xl font-bold active:scale-95 transition-all flex items-center justify-center shadow-lg shadow-emerald-500/25">
+          <i class="ph-bold ph-check"></i>
+        </button>
+      </div>
+
+      <p class="text-center text-xs text-slate-500">Puedes usar tu teclado físico (0-9, Enter para enviar, Borrar)</p>
+    </section>
+
+    <!-- 3. RESULTS SCREEN -->
+    <section id="results-screen" class="hidden space-y-6 animate-pop max-w-2xl mx-auto w-full">
+      <div class="bg-slate-800/80 rounded-3xl p-6 sm:p-8 border border-slate-700/80 backdrop-blur-md text-center space-y-6">
+        
+        <!-- Stars Rating Header -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-center space-x-2 text-4xl sm:text-5xl" id="stars-rating-container">
+            <!-- Stars rendered dynamically -->
+          </div>
+          <h2 class="font-fredoka text-3xl sm:text-4xl font-extrabold text-white" id="results-title">
+            ¡Gran Trabajo!
+          </h2>
+          <p class="text-slate-400 text-sm" id="results-subtitle">Has completado la ronda de práctica.</p>
+        </div>
+
+        <!-- Metrics Grid -->
+        <div class="grid grid-cols-3 gap-3 bg-slate-900/60 p-4 rounded-2xl border border-slate-700/50">
+          <div class="space-y-1">
+            <div class="text-xs text-slate-400 uppercase font-semibold">Aciertos</div>
+            <div class="font-fredoka font-bold text-xl text-emerald-400" id="res-accuracy">10 / 10</div>
+          </div>
+          <div class="space-y-1 border-x border-slate-800">
+            <div class="text-xs text-slate-400 uppercase font-semibold">Puntuación</div>
+            <div class="font-fredoka font-bold text-xl text-amber-400" id="res-score">950</div>
+          </div>
+          <div class="space-y-1">
+            <div class="text-xs text-slate-400 uppercase font-semibold">Max Racha</div>
+            <div class="font-fredoka font-bold text-xl text-rose-400" id="res-streak">10 🔥</div>
+          </div>
+        </div>
+
+        <!-- Detailed Review of Failed Questions (if any) -->
+        <div id="failed-questions-container" class="text-left space-y-3 hidden">
+          <h3 class="font-fredoka text-lg font-bold text-rose-400 flex items-center space-x-2">
+            <i class="ph-bold ph-warning-circle"></i>
+            <span>Operaciones a repasar:</span>
+          </h3>
+          <div class="max-h-48 overflow-y-auto no-scrollbar space-y-2 pr-1" id="failed-list">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+          <button onclick="startGame()" class="py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-fredoka font-bold text-lg shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center space-x-2">
+            <i class="ph-bold ph-arrow-counter-clockwise"></i>
+            <span>Repetir Esta Tabla</span>
+          </button>
+          <button onclick="showScreen('setup-screen')" class="py-3.5 px-4 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-fredoka font-bold text-lg border border-slate-600 transition-all flex items-center justify-center space-x-2">
+            <i class="ph-bold ph-grid-four"></i>
+            <span>Elegir Otra Tabla</span>
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL 1: CHEAT SHEET (Tabla de Consulta) -->
+  <div id="cheatsheet-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-800 rounded-3xl border border-slate-700 w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl animate-pop overflow-hidden">
+      <!-- Modal Header -->
+      <div class="p-5 border-b border-slate-700 flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <i class="ph-bold ph-table text-indigo-400 text-2xl"></i>
+          <h3 class="font-fredoka font-bold text-xl text-white">Tabla de Multiplicar de Repaso</h3>
+        </div>
+        <button onclick="closeModal('cheatsheet-modal')" class="p-2 rounded-xl bg-slate-700 text-slate-300 hover:bg-slate-600 transition-all">
+          <i class="ph-bold ph-x"></i>
+        </button>
+      </div>
+
+      <!-- Tab Selector for Tables 1-12 -->
+      <div class="p-4 border-b border-slate-700/60 bg-slate-900/50 flex space-x-2 overflow-x-auto no-scrollbar" id="cheat-tabs">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <!-- Modal Body Content -->
+      <div class="p-6 overflow-y-auto flex-1 text-center" id="cheat-tab-content">
+        <!-- Content dynamically inserted -->
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: HIGH SCORES / STATS -->
+  <div id="stats-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-800 rounded-3xl border border-slate-700 w-full max-w-md max-h-[85vh] flex flex-col shadow-2xl animate-pop overflow-hidden">
+      <!-- Modal Header -->
+      <div class="p-5 border-b border-slate-700 flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <i class="ph-bold ph-trophy text-amber-400 text-2xl"></i>
+          <h3 class="font-fredoka font-bold text-xl text-white">Tus Récords y Logros</h3>
+        </div>
+        <button onclick="closeModal('stats-modal')" class="p-2 rounded-xl bg-slate-700 text-slate-300 hover:bg-slate-600 transition-all">
+          <i class="ph-bold ph-x"></i>
+        </button>
+      </div>
+
+      <!-- Stats Body -->
+      <div class="p-6 overflow-y-auto space-y-4">
+        <div class="grid grid-cols-2 gap-3 text-center">
+          <div class="bg-slate-900/70 p-4 rounded-2xl border border-slate-700/50">
+            <div class="text-xs text-slate-400 uppercase font-semibold">Total Resueltas</div>
+            <div class="font-fredoka font-bold text-2xl text-indigo-400" id="stat-total-solved">0</div>
+          </div>
+          <div class="bg-slate-900/70 p-4 rounded-2xl border border-slate-700/50">
+            <div class="text-xs text-slate-400 uppercase font-semibold">Precisión Global</div>
+            <div class="font-fredoka font-bold text-2xl text-emerald-400" id="stat-accuracy">0%</div>
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <h4 class="text-xs font-bold uppercase text-slate-400 tracking-wider">Mejores Puntuaciones por Tabla</h4>
+          <div class="space-y-1.5 max-h-56 overflow-y-auto no-scrollbar pr-1" id="stats-table-list">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="w-full max-w-5xl mx-auto p-4 text-center text-xs text-slate-500">
+    Matemáticas Divertidas • Diseñado para Estudiantes
+  </footer>
+
+  <!-- JavaScript Application Engine -->
+  <script>
+    /* Global Application State */
+    const state = {
+      selectedTable: 0, // 0 = All tables, 1-12 = Specific table
+      questionsCount: 10,
+      timerMode: 'none', // 'none', 'per-q', 'blitz'
+      
+      // Active game state
+      isPlaying: false,
+      currentQuestionIndex: 0,
+      questions: [],
+      score: 0,
+      streak: 0,
+      maxStreak: 0,
+      userAnswer: '',
+      failedQuestions: [],
+      
+      // Timer handle
+      timerInterval: null,
+      timeLeft: 0,
+      
+      // Preferences & Audio
+      soundEnabled: true,
+      audioCtx: null
+    };
+
+    /* Table Colors Palette for Visual Appeal */
+    const tableColors = [
+      'from-rose-500 to-pink-600',
+      'from-orange-500 to-amber-600',
+      'from-amber-500 to-yellow-600',
+      'from-emerald-500 to-teal-600',
+      'from-teal-500 to-cyan-600',
+      'from-cyan-500 to-sky-600',
+      'from-blue-500 to-indigo-600',
+      'from-indigo-500 to-violet-600',
+      'from-violet-500 to-purple-600',
+      'from-purple-500 to-fuchsia-600',
+      'from-fuchsia-500 to-pink-600',
+      'from-sky-500 to-indigo-600'
+    ];
+
+    /* Initialization */
+    window.onload = () => {
+      renderTableSelector();
+      renderCheatSheetTabs(1);
+      loadStats();
+      setupKeyboardListeners();
+    };
+
+    /* Web Audio API Sound Synthesizer */
+    function playSound(type) {
+      if (!state.soundEnabled) return;
+
+      try {
+        if (!state.audioCtx) {
+          state.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        
+        const ctx = state.audioCtx;
+        if (ctx.state === 'suspended') {
+          ctx.resume();
+        }
+
+        const now = ctx.currentTime;
+
+        if (type === 'correct') {
+          // Ascending crisp bell chime
+          const osc1 = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc1.type = 'sine';
+          osc1.frequency.setValueAtTime(523.25, now); // C5
+          osc1.frequency.exponentialRampToValueAtTime(659.25, now + 0.1); // E5
+          osc1.frequency.exponentialRampToValueAtTime(783.99, now + 0.2); // G5
+          
+          gain.gain.setValueAtTime(0.15, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+          
+          osc1.connect(gain);
+          gain.connect(ctx.destination);
+          osc1.start(now);
+          osc1.stop(now + 0.35);
+
+        } else if (type === 'wrong') {
+          // Low buzzing tone
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(160, now);
+          osc.frequency.linearRampToValueAtTime(110, now + 0.25);
+          
+          gain.gain.setValueAtTime(0.15, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+          
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.25);
+
+        } else if (type === 'win') {
+          // Simple celebratory chime
+          [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, now + (idx * 0.1));
+            
+            gain.gain.setValueAtTime(0.15, now + (idx * 0.1));
+            gain.gain.exponentialRampToValueAtTime(0.001, now + (idx * 0.1) + 0.4);
+            
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now + (idx * 0.1));
+            osc.stop(now + (idx * 0.1) + 0.4);
+          });
+        }
+      } catch (e) {
+        console.warn('Audio playback error:', e);
+      }
+    }
+
+    function toggleAudio() {
+      state.soundEnabled = !state.soundEnabled;
+      const icon = document.getElementById('audio-icon');
+      if (state.soundEnabled) {
+        icon.className = 'ph-bold ph-speaker-high text-lg text-emerald-400';
+      } else {
+        icon.className = 'ph-bold ph-speaker-slash text-lg text-rose-400';
+      }
+    }
+
+    /* Render Setup Screen Table Cards */
+    function renderTableSelector() {
+      const container = document.getElementById('table-selector-grid');
+      container.innerHTML = '';
+
+      // Button for ALL / Random
+      const allBtn = document.createElement('button');
+      allBtn.className = `p-3 rounded-2xl border flex flex-col items-center justify-center transition-all ${
+        state.selectedTable === 0
+          ? 'bg-gradient-to-br from-indigo-500 to-purple-600 border-indigo-400 text-white shadow-lg shadow-indigo-500/30 scale-105'
+          : 'bg-slate-800 hover:bg-slate-700/80 border-slate-700 text-slate-300'
+      }`;
+      allBtn.onclick = () => selectTable(0);
+      allBtn.innerHTML = `
+        <i class="ph-bold ph-shuffle text-2xl mb-1"></i>
+        <span class="font-fredoka font-bold text-xs">Todas</span>
+      `;
+      container.appendChild(allBtn);
+
+      // Buttons for 1 through 12
+      for (let i = 1; i <= 12; i++) {
+        const btn = document.createElement('button');
+        const isSelected = state.selectedTable === i;
+        const colorGradient = tableColors[(i - 1) % tableColors.length];
+        
+        btn.className = `p-3.5 rounded-2xl border flex flex-col items-center justify-center transition-all ${
+          isSelected
+            ? `bg-gradient-to-br ${colorGradient} border-white text-white shadow-lg scale-105`
+            : 'bg-slate-800 hover:bg-slate-700/80 border-slate-700 text-slate-200'
+        }`;
+        btn.onclick = () => selectTable(i);
+        btn.innerHTML = `
+          <span class="text-xs text-slate-400 font-semibold mb-0.5">Tabla</span>
+          <span class="font-fredoka font-bold text-2xl">${i}</span>
+        `;
+        container.appendChild(btn);
+      }
+    }
+
+    function selectTable(num) {
+      state.selectedTable = num;
+      renderTableSelector();
+    }
+
+    function setQuestionsCount(count) {
+      state.questionsCount = count;
+      document.querySelectorAll('#questions-count-selector .q-btn').forEach(btn => {
+        if (parseInt(btn.innerText) === count) {
+          btn.className = 'q-btn py-2.5 rounded-xl font-bold text-sm bg-indigo-600 border border-indigo-500 text-white shadow-lg shadow-indigo-500/25 transition-all';
+        } else {
+          btn.className = 'q-btn py-2.5 rounded-xl font-bold text-sm bg-slate-700 hover:bg-slate-600 border border-slate-600 text-slate-200 transition-all';
+        }
+      });
+    }
+
+    function setTimerMode(mode) {
+      state.timerMode = mode;
+      const btns = document.querySelectorAll('#timer-mode-selector .t-btn');
+      btns.forEach((btn, idx) => {
+        const isMatch = (idx === 0 && mode === 'none') || (idx === 1 && mode === 'per-q') || (idx === 2 && mode === 'blitz');
+        if (isMatch) {
+          btn.className = 't-btn py-2.5 px-2 rounded-xl font-semibold text-xs sm:text-sm bg-indigo-600 border border-indigo-500 text-white shadow-lg shadow-indigo-500/25 transition-all';
+        } else {
+          btn.className = 't-btn py-2.5 px-2 rounded-xl font-semibold text-xs sm:text-sm bg-slate-700 hover:bg-slate-600 border border-slate-600 text-slate-200 transition-all';
+        }
+      });
+    }
+
+    /* Question Generator Logic */
+    function generateQuestions() {
+      const qList = [];
+      for (let i = 0; i < state.questionsCount; i++) {
+        let factorA = state.selectedTable;
+        if (factorA === 0) {
+          factorA = Math.floor(Math.random() * 12) + 1;
+        }
+        let factorB = Math.floor(Math.random() * 12) + 1;
+
+        // Prevent immediate repeat if possible
+        if (i > 0 && qList[i - 1].a === factorA && qList[i - 1].b === factorB) {
+          factorB = (factorB % 12) + 1;
+        }
+
+        qList.push({
+          a: factorA,
+          b: factorB,
+          answer: factorA * factorB
+        });
+      }
+      return qList;
+    }
+
+    /* Game Navigation Screens */
+    function showScreen(screenId) {
+      document.getElementById('setup-screen').classList.add('hidden');
+      document.getElementById('game-screen').classList.add('hidden');
+      document.getElementById('results-screen').classList.add('hidden');
+
+      const target = document.getElementById(screenId);
+      target.classList.remove('hidden');
+      target.classList.add('animate-pop');
+    }
+
+    /* Start Game Loop */
+    function startGame() {
+      state.isPlaying = true;
+      state.questions = generateQuestions();
+      state.currentQuestionIndex = 0;
+      state.score = 0;
+      state.streak = 0;
+      state.maxStreak = 0;
+      state.userAnswer = '';
+      state.failedQuestions = [];
+
+      document.getElementById('game-score').innerText = '0';
+      document.getElementById('streak-counter').innerText = '0';
+
+      // Setup Timer Display UI
+      const timerContainer = document.getElementById('timer-display-container');
+      if (state.timerMode !== 'none') {
+        timerContainer.classList.remove('hidden');
+        if (state.timerMode === 'blitz') {
+          startTimer(60);
+        }
+      } else {
+        timerContainer.classList.add('hidden');
+      }
+
+      showScreen('game-screen');
+      loadQuestion();
+    }
+
+    function loadQuestion() {
+      if (state.currentQuestionIndex >= state.questions.length) {
+        finishGame();
+        return;
+      }
+
+      const q = state.questions[state.currentQuestionIndex];
+      state.userAnswer = '';
+      updateAnswerDisplay();
+
+      // UI updates
+      document.getElementById('factor-a').innerText = q.a;
+      document.getElementById('factor-b').innerText = q.b;
+      document.getElementById('game-progress-text').innerText = `${state.currentQuestionIndex + 1} / ${state.questions.length}`;
+      document.getElementById('current-mode-badge').innerText = state.selectedTable === 0 ? 'Desafío Aleatorio' : `Tabla del ${state.selectedTable}`;
+
+      // Progress bar percentage
+      const progressPercent = (state.currentQuestionIndex / state.questions.length) * 100;
+      document.getElementById('progress-bar-inner').style.width = `${progressPercent}%`;
+
+      // Clear feedback text
+      const msgElem = document.getElementById('feedback-message');
+      msgElem.className = 'h-6 font-fredoka font-semibold text-sm transition-all duration-200 text-transparent';
+
+      // Handle per-question timer
+      if (state.timerMode === 'per-q') {
+        startTimer(10);
+      }
+    }
+
+    /* Timer Logic */
+    function startTimer(seconds) {
+      clearInterval(state.timerInterval);
+      state.timeLeft = seconds;
+      updateTimerUI();
+
+      state.timerInterval = setInterval(() => {
+        state.timeLeft--;
+        updateTimerUI();
+
+        if (state.timeLeft <= 0) {
+          clearInterval(state.timerInterval);
+          if (state.timerMode === 'per-q') {
+            // Time out on question -> submit current answer or treat as incorrect
+            submitAnswer(true);
+          } else if (state.timerMode === 'blitz') {
+            // Time out for entire game
+            finishGame();
+          }
+        }
+      }, 1000);
+    }
+
+    function updateTimerUI() {
+      document.getElementById('game-timer').innerText = `${state.timeLeft}s`;
+    }
+
+    /* Keyboard & On-Screen Keypad Logic */
+    function appendNum(numStr) {
+      if (!state.isPlaying) return;
+      if (state.userAnswer.length >= 3) return; // Cap at 3 digits
+      state.userAnswer += numStr;
+      updateAnswerDisplay();
+    }
+
+    function deleteNum() {
+      if (!state.isPlaying) return;
+      state.userAnswer = state.userAnswer.slice(0, -1);
+      updateAnswerDisplay();
+    }
+
+    function updateAnswerDisplay() {
+      const displayElem = document.getElementById('user-answer-display');
+      if (state.userAnswer === '') {
+        displayElem.innerText = '?';
+        displayElem.classList.add('text-slate-600', 'animate-pulse');
+        displayElem.classList.remove('text-emerald-400');
+      } else {
+        displayElem.innerText = state.userAnswer;
+        displayElem.classList.remove('text-slate-600', 'animate-pulse');
+        displayElem.classList.add('text-emerald-400');
+      }
+    }
+
+    /* Physical Keyboard Listener */
+    function setupKeyboardListeners() {
+      window.addEventListener('keydown', (e) => {
+        if (!state.isPlaying) return;
+
+        if (e.key >= '0' && e.key <= '9') {
+          appendNum(e.key);
+        } else if (e.key === 'Backspace') {
+          deleteNum();
+        } else if (e.key === 'Enter') {
+          submitAnswer();
+        }
+      });
+    }
+
+    /* Answer Submission & Verification */
+    function submitAnswer(isTimeout = false) {
+      if (!state.isPlaying) return;
+      if (state.userAnswer === '' && !isTimeout) return;
+
+      const currentQ = state.questions[state.currentQuestionIndex];
+      const userNum = parseInt(state.userAnswer, 10);
+      const cardElem = document.getElementById('equation-card');
+      const msgElem = document.getElementById('feedback-message');
+
+      if (state.timerMode === 'per-q') {
+        clearInterval(state.timerInterval);
+      }
+
+      if (!isTimeout && userNum === currentQ.answer) {
+        // CORRECT ANSWER
+        playSound('correct');
+        state.score += 100 + (state.streak * 10);
+        state.streak++;
+        if (state.streak > state.maxStreak) state.maxStreak = state.streak;
+
+        msgElem.innerText = '¡Excelente! +100';
+        msgElem.className = 'h-6 font-fredoka font-bold text-base text-emerald-400 animate-pop';
+
+        cardElem.classList.add('border-emerald-500/80');
+        setTimeout(() => cardElem.classList.remove('border-emerald-500/80'), 400);
+
+      } else {
+        // INCORRECT ANSWER
+        playSound('wrong');
+        state.streak = 0;
+        state.failedQuestions.push({
+          a: currentQ.a,
+          b: currentQ.b,
+          userAns: isTimeout ? 'Sin tiempo' : (state.userAnswer || '0'),
+          correctAns: currentQ.answer
+        });
+
+        msgElem.innerText = `¡Ups! ${currentQ.a} × ${currentQ.b} = ${currentQ.answer}`;
+        msgElem.className = 'h-6 font-fredoka font-bold text-base text-rose-400 animate-pop';
+
+        cardElem.classList.add('animate-shake', 'border-rose-500/80');
+        setTimeout(() => cardElem.classList.remove('animate-shake', 'border-rose-500/80'), 400);
+      }
+
+      // Update HUD
+      document.getElementById('game-score').innerText = state.score;
+      document.getElementById('streak-counter').innerText = state.streak;
+
+      // Move to next question after short delay
+      setTimeout(() => {
+        state.currentQuestionIndex++;
+        loadQuestion();
+      }, 700);
+    }
+
+    function quitGame() {
+      clearInterval(state.timerInterval);
+      state.isPlaying = false;
+      showScreen('setup-screen');
+    }
+
+    /* Game Completion and Results */
+    function finishGame() {
+      clearInterval(state.timerInterval);
+      state.isPlaying = false;
+
+      const total = state.questions.length;
+      const correctCount = total - state.failedQuestions.length;
+      const accuracyPercent = Math.round((correctCount / total) * 100);
+
+      // Star calculation
+      let stars = 1;
+      if (accuracyPercent >= 90) stars = 3;
+      else if (accuracyPercent >= 60) stars = 2;
+
+      // Sound and confetti if 3 stars
+      if (stars === 3) {
+        playSound('win');
+        triggerConfetti();
+      }
+
+      // Render stars
+      const starsContainer = document.getElementById('stars-rating-container');
+      starsContainer.innerHTML = '';
+      for (let i = 1; i <= 3; i++) {
+        const star = document.createElement('i');
+        if (i <= stars) {
+          star.className = 'ph-fill ph-star text-amber-400 animate-bounce';
+          star.style.animationDelay = `${i * 0.15}s`;
+        } else {
+          star.className = 'ph-bold ph-star text-slate-700';
+        }
+        starsContainer.appendChild(star);
+      }
+
+      // Title & metrics update
+      document.getElementById('results-title').innerText = 
+        stars === 3 ? '¡Excelente Trabajo! 🎉' :
+        stars === 2 ? '¡Muy Bien! 👍' : '¡Sigue Practicando! 💪';
+
+      document.getElementById('res-accuracy').innerText = `${correctCount} / ${total}`;
+      document.getElementById('res-score').innerText = state.score;
+      document.getElementById('res-streak').innerText = `${state.maxStreak} 🔥`;
+
+      // Render failed questions list if any
+      const failedContainer = document.getElementById('failed-questions-container');
+      const failedList = document.getElementById('failed-list');
+      failedList.innerHTML = '';
+
+      if (state.failedQuestions.length > 0) {
+        failedContainer.classList.remove('hidden');
+        state.failedQuestions.forEach(item => {
+          const div = document.createElement('div');
+          div.className = 'flex items-center justify-between bg-slate-900/80 p-3 rounded-xl border border-slate-700/60 text-sm';
+          div.innerHTML = `
+            <span class="font-fredoka text-slate-200">${item.a} × ${item.b}</span>
+            <div class="space-x-3">
+              <span class="text-rose-400 line-through text-xs">Tu respuesta: ${item.userAns}</span>
+              <span class="text-emerald-400 font-bold">Correcto: ${item.correctAns}</span>
+            </div>
+          `;
+          failedList.appendChild(div);
+        });
+      } else {
+        failedContainer.classList.add('hidden');
+      }
+
+      // Save LocalStorage High Scores & Stats
+      saveStats(correctCount, total, state.score);
+
+      showScreen('results-screen');
+    }
+
+    /* Confetti Particle Burst */
+    function triggerConfetti() {
+      if (typeof confetti === 'function') {
+        confetti({
+          particleCount: 80,
+          spread: 70,
+          origin: { y: 0.6 }
+        });
+      }
+    }
+
+    /* LocalStorage Stats Manager */
+    function saveStats(correct, total, score) {
+      const stats = JSON.parse(localStorage.getItem('math_master_stats') || '{"totalSolved":0, "totalCorrect":0, "highScores":{}}');
+      
+      stats.totalSolved += total;
+      stats.totalCorrect += correct;
+
+      const tKey = `table_${state.selectedTable}`;
+      if (!stats.highScores[tKey] || score > stats.highScores[tKey]) {
+        stats.highScores[tKey] = score;
+      }
+
+      localStorage.setItem('math_master_stats', JSON.stringify(stats));
+      loadStats();
+    }
+
+    function loadStats() {
+      const stats = JSON.parse(localStorage.getItem('math_master_stats') || '{"totalSolved":0, "totalCorrect":0, "highScores":{}}');
+      
+      document.getElementById('stat-total-solved').innerText = stats.totalSolved;
+      
+      const accuracy = stats.totalSolved > 0 
+        ? Math.round((stats.totalCorrect / stats.totalSolved) * 100) 
+        : 0;
+      document.getElementById('stat-accuracy').innerText = `${accuracy}%`;
+
+      // Render Table High Scores List
+      const container = document.getElementById('stats-table-list');
+      container.innerHTML = '';
+
+      for (let i = 0; i <= 12; i++) {
+        const key = `table_${i}`;
+        const score = stats.highScores[key] || 0;
+        const name = i === 0 ? 'Desafío Aleatorio' : `Tabla del ${i}`;
+
+        const row = document.createElement('div');
+        row.className = 'flex items-center justify-between bg-slate-900/60 px-3 py-2 rounded-xl text-xs border border-slate-700/40';
+        row.innerHTML = `
+          <span class="text-slate-300 font-semibold">${name}</span>
+          <span class="font-fredoka font-bold text-amber-400">${score} pts</span>
+        `;
+        container.appendChild(row);
+      }
+    }
+
+    /* Cheat Sheet Modal Rendering */
+    function renderCheatSheetTabs(activeTable) {
+      const tabsContainer = document.getElementById('cheat-tabs');
+      tabsContainer.innerHTML = '';
+
+      for (let i = 1; i <= 12; i++) {
+        const tabBtn = document.createElement('button');
+        tabBtn.className = `px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+          activeTable === i
+            ? 'bg-indigo-600 text-white shadow-md'
+            : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+        }`;
+        tabBtn.innerText = `Tabla ${i}`;
+        tabBtn.onclick = () => renderCheatSheetTabs(i);
+        tabsContainer.appendChild(tabBtn);
+      }
+
+      // Render equations for active table
+      const contentContainer = document.getElementById('cheat-tab-content');
+      contentContainer.innerHTML = '';
+
+      const grid = document.createElement('div');
+      grid.className = 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3';
+
+      for (let j = 1; j <= 12; j++) {
+        const card = document.createElement('div');
+        card.className = 'bg-slate-900/80 p-3.5 rounded-2xl border border-slate-700/60 flex items-center justify-between font-fredoka text-base';
+        card.innerHTML = `
+          <span class="text-slate-300">${activeTable} × ${j}</span>
+          <span class="text-amber-400 font-bold text-lg">= ${activeTable * j}</span>
+        `;
+        grid.appendChild(card);
+      }
+
+      contentContainer.appendChild(grid);
+    }
+
+    /* Modal Utility Functions */
+    function openModal(modalId) {
+      document.getElementById(modalId).classList.remove('hidden');
+    }
+
+    function closeModal(modalId) {
+      document.getElementById(modalId).classList.add('hidden');
+    }
+  </script>
+</body>
+</html>
