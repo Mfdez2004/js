@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suma de Vectores Interactiva con Traslación (A + B)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        canvas {
+            touch-action: none;
+        }
+        input[type="range"] {
+            accent-color: #10b981;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans">
+
+    <header class="bg-slate-800 border-b border-slate-700 p-4 shadow-md">
+        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+            <div>
+                <h1 class="text-xl font-bold text-emerald-400 flex items-center gap-2">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    Suma Vectorial Interactiva: $\vec{A} + \vec{B}$
+                </h1>
+                <p class="text-xs text-slate-400">Traslada vectores a lo largo de las trayectorias para construir el paralelogramo o el método del triángulo.</p>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <span class="px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span>Modo Interactivo Activo</span>
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 grid grid-cols-1 lg:grid-cols-4 gap-4">
+        
+        <!-- Canvas Area & Slider Controls -->
+        <div class="lg:col-span-3 bg-slate-800 rounded-xl border border-slate-700 shadow-xl overflow-hidden flex flex-col relative">
+            
+            <!-- Controls Top Bar -->
+            <div class="p-3 bg-slate-800/90 border-b border-slate-700 flex flex-wrap items-center justify-between gap-3 text-xs">
+                <div class="flex items-center gap-4 flex-wrap">
+                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" id="chk-grid" checked class="rounded border-slate-600 text-emerald-500 focus:ring-emerald-500 bg-slate-700">
+                        <span>Cuadrícula</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" id="chk-snap" checked class="rounded border-slate-600 text-emerald-500 focus:ring-emerald-500 bg-slate-700">
+                        <span>Ajustar a Cuadrícula</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" id="chk-guides" checked class="rounded border-slate-600 text-emerald-500 focus:ring-emerald-500 bg-slate-700">
+                        <span>Paralelogramo Guía</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer select-none bg-emerald-950/60 px-2.5 py-1 rounded border border-emerald-500/40">
+                        <input type="checkbox" id="chk-sum" checked class="rounded border-slate-600 text-emerald-400 focus:ring-emerald-500 bg-slate-700">
+                        <span class="text-emerald-400 font-bold">Mostrar Suma (A + B)</span>
+                    </label>
+                </div>
+                
+                <button id="btn-reset" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded transition duration-150 font-medium flex items-center gap-1.5">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                    </svg>
+                    Restablecer
+                </button>
+            </div>
+
+            <!-- Canvas Container -->
+            <div class="flex-1 min-h-[460px] relative w-full h-full cursor-crosshair" id="canvas-container">
+                <canvas id="vectorCanvas" class="absolute inset-0 w-full h-full"></canvas>
+            </div>
+
+            <div class="p-4 bg-slate-900/80 border-t border-slate-700 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Slider Vector A deslizando sobre B -->
+                <div class="bg-slate-800/80 p-3 rounded-lg border border-red-500/30">
+                    <div class="flex justify-between items-center mb-1 text-xs font-semibold">
+                        <span class="text-red-400 flex items-center gap-1">
+                            <span class="w-2.5 h-2.5 rounded-full bg-red-500 inline-block"></span>
+                            Trasladar Vector A a lo largo de B
+                        </span>
+                        <span id="sliderA-val" class="font-mono text-slate-300">0%</span>
+                    </div>
+                    <input type="range" id="slider-a" min="0" max="100" value="0" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer">
+                    <p class="text-[11px] text-slate-400 mt-1">Desplaza el origen del vector A desde su posición inicial hasta la punta de B.</p>
+                </div>
+
+                <!-- Slider Vector B deslizando sobre A -->
+                <div class="bg-slate-800/80 p-3 rounded-lg border border-blue-500/30">
+                    <div class="flex justify-between items-center mb-1 text-xs font-semibold">
+                        <span class="text-blue-400 flex items-center gap-1">
+                            <span class="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block"></span>
+                            Trasladar Vector B a lo largo de A
+                        </span>
+                        <span id="sliderB-val" class="font-mono text-slate-300">0%</span>
+                    </div>
+                    <input type="range" id="slider-b" min="0" max="100" value="0" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer">
+                    <p class="text-[11px] text-slate-400 mt-1">Desplaza el origen del vector B desde su posición inicial hasta la punta de A.</p>
+                </div>
+            </div>
+            
+            <div class="px-3 py-1.5 bg-slate-950 border-t border-slate-800 text-[11px] text-slate-500 flex justify-between">
+                <span>Puntos de control optimizados (5px visuales / 16px área táctil)</span>
+                <span>Puntas de flechas macizas rellenas</span>
+            </div>
+        </div>
+
+        <div class="flex flex-col gap-4">
+            
+            <!-- Summary Card -->
+            <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 shadow-lg">
+                <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-3">Magnitudes y Componentes</h2>
+                
+                <!-- Vector A -->
+                <div class="mb-3 p-3 rounded-lg bg-slate-900/60 border-l-4 border-red-500">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="font-bold text-red-400 text-sm">Vector A</span>
+                        <span id="vecA-mag" class="text-xs font-mono text-slate-200">|A| = 0.0</span>
+                    </div>
+                    <div class="text-xs font-mono text-slate-400 grid grid-cols-2 gap-1">
+                        <span id="vecA-comp">Comp: (0, 0)</span>
+                        <span id="vecA-ang">Áng: 0°</span>
+                    </div>
+                </div>
+
+                <!-- Vector B -->
+                <div class="mb-3 p-3 rounded-lg bg-slate-900/60 border-l-4 border-blue-500">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="font-bold text-blue-400 text-sm">Vector B</span>
+                        <span id="vecB-mag" class="text-xs font-mono text-slate-200">|B| = 0.0</span>
+                    </div>
+                    <div class="text-xs font-mono text-slate-400 grid grid-cols-2 gap-1">
+                        <span id="vecB-comp">Comp: (0, 0)</span>
+                        <span id="vecB-ang">Áng: 0°</span>
+                    </div>
+                </div>
+
+                <!-- Suma A + B -->
+                <div id="panel-sum" class="p-3 rounded-lg bg-slate-900/60 border-l-4 border-emerald-500 transition-opacity duration-200">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="font-bold text-emerald-400 text-sm">Suma (A + B)</span>
+                        <span id="vecSum-mag" class="text-xs font-mono text-slate-200">|R| = 0.0</span>
+                    </div>
+                    <div class="text-xs font-mono text-slate-400 grid grid-cols-2 gap-1">
+                        <span id="vecSum-comp">Comp: (0, 0)</span>
+                        <span id="vecSum-ang">Áng: 0°</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Conceptual Explanation -->
+            <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 shadow-lg flex-1">
+                <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-2">Métodos Gráficos</h2>
+                
+                <div class="text-xs text-slate-300 space-y-2.5 leading-relaxed">
+                    <p>
+                        <strong class="text-red-400">Regla del Triángulo (Muro B sobre A):</strong> 
+                        Ajusta el slider de <span class="text-blue-400">Vector B</span> al 100%. El origen de B se colocará exactamente en la punta de A.
+                    </p>
+                    <p>
+                        <strong class="text-blue-400">Regla del Triángulo (Muro A sobre B):</strong> 
+                        Ajusta el slider de <span class="text-red-400">Vector A</span> al 100%. El origen de A se colocará exactamente en la punta de B.
+                    </p>
+                    <p>
+                        <strong class="text-emerald-400">Método del Paralelogramo:</strong> 
+                        Mueve ambos deslizadores. Notarás cómo la esquina opuesta del paralelogramo siempre coincide con la punta de la <span class="text-emerald-400">Suma Resultante</span>.
+                    </p>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        // --- CONSTANTES Y CONFIGURACIÓN ---
+        const GRID_SIZE = 25;
+        
+        // Ajustes para puntos pequeños y flechas claras
+        const NODE_RADIUS = 5;          // Radio visual pequeño
+        const NODE_HIT_RADIUS = 16;     // Área amplia para facil interacción
+        const ARROW_HEAD_LEN = 16;      // Longitud de aletas
+        const ARROW_HEAD_ANGLE = Math.PI / 6; // Ángulo 30°
+
+        // Paleta de colores
+        const COLOR_A = '#ef4444';       // Rojo
+        const COLOR_B = '#3b82f6';       // Azul
+        const COLOR_SUM = '#10b981';     // Verde Esmeralda
+
+        // Elementos Canvas y UI
+        const canvas = document.getElementById('vectorCanvas');
+        const ctx = canvas.getContext('2d');
+        const container = document.getElementById('canvas-container');
+
+        const chkGrid = document.getElementById('chk-grid');
+        const chkSnap = document.getElementById('chk-snap');
+        const chkGuides = document.getElementById('chk-guides');
+        const chkSum = document.getElementById('chk-sum');
+
+        const sliderA = document.getElementById('slider-a');
+        const sliderB = document.getElementById('slider-b');
+        const sliderAVal = document.getElementById('sliderA-val');
+        const sliderBVal = document.getElementById('sliderB-val');
+        
+        const btnReset = document.getElementById('btn-reset');
+        const panelSum = document.getElementById('panel-sum');
+
+        // Estado principal de los vectores base (posiciones absolutas base)
+        let baseVectors = {
+            A: { start: { x: 0, y: 0 }, end: { x: 0, y: 0 } },
+            B: { start: { x: 0, y: 0 }, end: { x: 0, y: 0 } }
+        };
+
+        // Estado de interacción de arrastre
+        let dragTarget = null; // { vectorKey: 'A'|'B', type: 'start'|'end'|'body', offsetStart, offsetEnd }
+
+        function resizeCanvas() {
+            const rect = container.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+            draw();
+        }
+
+        function initPositions() {
+            const width = canvas.width || 800;
+            const height = canvas.height || 500;
+
+            const centerX = Math.floor(width / 3 / GRID_SIZE) * GRID_SIZE;
+            const centerY = Math.floor(height / 1.8 / GRID_SIZE) * GRID_SIZE;
+
+            // Vector A base
+            baseVectors.A.start = { x: centerX, y: centerY };
+            baseVectors.A.end = { x: centerX + GRID_SIZE * 5, y: centerY - GRID_SIZE * 3 };
+
+            // Vector B base
+            baseVectors.B.start = { x: centerX, y: centerY };
+            baseVectors.B.end = { x: centerX + GRID_SIZE * 3, y: centerY + GRID_SIZE * 4 };
+
+            // Reseteo de deslizadores
+            sliderA.value = 0;
+            sliderB.value = 0;
+            sliderAVal.textContent = "0%";
+            sliderBVal.textContent = "0%";
+
+            draw();
+        }
+
+        function snap(value) {
+            return chkSnap.checked ? Math.round(value / GRID_SIZE) * GRID_SIZE : value;
+        }
+
+        // Obtiene las posiciones trasladadas según el valor de los deslizadores
+        function getEffectiveVectors() {
+            const factorA = parseFloat(sliderA.value) / 100;
+            const factorB = parseFloat(sliderB.value) / 100;
+
+            // Vector B desplaza el origen de A a lo largo de su cuerpo
+            const vecB_dx = baseVectors.B.end.x - baseVectors.B.start.x;
+            const vecB_dy = baseVectors.B.end.y - baseVectors.B.start.y;
+
+            // Vector A desplaza el origen de B a lo largo de su cuerpo
+            const vecA_dx = baseVectors.A.end.x - baseVectors.A.start.x;
+            const vecA_dy = baseVectors.A.end.y - baseVectors.A.start.y;
+
+            // Posición trasladada para A
+            const effectiveA_start = {
+                x: baseVectors.A.start.x + vecB_dx * factorA,
+                y: baseVectors.A.start.y + vecB_dy * factorA
+            };
+            const effectiveA_end = {
+                x: baseVectors.A.end.x + vecB_dx * factorA,
+                y: baseVectors.A.end.y + vecB_dy * factorA
+            };
+
+            // Posición trasladada para B
+            const effectiveB_start = {
+                x: baseVectors.B.start.x + vecA_dx * factorB,
+                y: baseVectors.B.start.y + vecA_dy * factorB
+            };
+            const effectiveB_end = {
+                x: baseVectors.B.end.x + vecA_dx * factorB,
+                y: baseVectors.B.end.y + vecA_dy * factorB
+            };
+
+            return {
+                A: { start: effectiveA_start, end: effectiveA_end, color: COLOR_A, label: 'A' },
+                B: { start: effectiveB_start, end: effectiveB_end, color: COLOR_B, label: 'B' }
+            };
+        }
+
+        function getVectorComponents(start, end) {
+            return {
+                x: (end.x - start.x) / GRID_SIZE,
+                y: -(end.y - start.y) / GRID_SIZE // Y invertido para plano cartesiano
+            };
+        }
+
+        function getMagnitude(comp) {
+            return Math.sqrt(comp.x * comp.x + comp.y * comp.y);
+        }
+
+        function getAngle(comp) {
+            let deg = Math.atan2(comp.y, comp.x) * (180 / Math.PI);
+            return deg < 0 ? deg + 360 : deg;
+        }
+
+        
+        // Dibujo de Flecha Prominente
+        function drawArrow(from, to, color, width = 3, opacity = 1.0) {
+            ctx.save();
+            ctx.globalAlpha = opacity;
+            ctx.strokeStyle = color;
+            ctx.fillStyle = color;
+            ctx.lineWidth = width;
+            ctx.lineCap = 'round';
+
+            const dx = to.x - from.x;
+            const dy = to.y - from.y;
+            const angle = Math.atan2(dy, dx);
+            const dist = Math.hypot(dx, dy);
+
+            // Cuerpo del vector
+            ctx.beginPath();
+            ctx.moveTo(from.x, from.y);
+            ctx.lineTo(to.x, to.y);
+            ctx.stroke();
+
+            // Punta maciza rellena
+            if (dist > 5) {
+                ctx.beginPath();
+                ctx.moveTo(to.x, to.y);
+                ctx.lineTo(
+                    to.x - ARROW_HEAD_LEN * Math.cos(angle - ARROW_HEAD_ANGLE),
+                    to.y - ARROW_HEAD_LEN * Math.sin(angle - ARROW_HEAD_ANGLE)
+                );
+                ctx.lineTo(
+                    to.x - ARROW_HEAD_LEN * Math.cos(angle + ARROW_HEAD_ANGLE),
+                    to.y - ARROW_HEAD_LEN * Math.sin(angle + ARROW_HEAD_ANGLE)
+                );
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            ctx.restore();
+        }
+
+        // Dibujo de Círculo/Nodo Pequeño
+        function drawNode(point, color, isSelected = false) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(point.x, point.y, isSelected ? NODE_RADIUS + 2 : NODE_RADIUS, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.fill();
+            ctx.lineWidth = 1.5;
+            ctx.strokeStyle = '#ffffff';
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function drawGrid() {
+            if (!chkGrid.checked) return;
+            ctx.save();
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 0.5;
+
+            for (let x = 0; x < canvas.width; x += GRID_SIZE) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            for (let y = 0; y < canvas.height; y += GRID_SIZE) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
+
+        function drawParallelogramGuides() {
+            if (!chkGuides.checked) return;
+
+            const origin = baseVectors.A.start;
+            const vecA_comp = { x: baseVectors.A.end.x - baseVectors.A.start.x, y: baseVectors.A.end.y - baseVectors.A.start.y };
+            const vecB_comp = { x: baseVectors.B.end.x - baseVectors.B.start.x, y: baseVectors.B.end.y - baseVectors.B.start.y };
+
+            ctx.save();
+            ctx.setLineDash([4, 4]);
+            ctx.lineWidth = 1.5;
+
+            // Línea paralela a A desde la punta de B
+            ctx.strokeStyle = 'rgba(239, 68, 68, 0.35)';
+            ctx.beginPath();
+            ctx.moveTo(baseVectors.B.end.x, baseVectors.B.end.y);
+            ctx.lineTo(baseVectors.B.end.x + vecA_comp.x, baseVectors.B.end.y + vecA_comp.y);
+            ctx.stroke();
+
+            // Línea paralela a B desde la punta de A
+            ctx.strokeStyle = 'rgba(59, 130, 246, 0.35)';
+            ctx.beginPath();
+            ctx.moveTo(baseVectors.A.end.x, baseVectors.A.end.y);
+            ctx.lineTo(baseVectors.A.end.x + vecB_comp.x, baseVectors.A.end.y + vecB_comp.y);
+            ctx.stroke();
+
+            ctx.restore();
+        }
+
+        function drawSumVector() {
+            if (!chkSum.checked) return;
+
+            const origin = baseVectors.A.start;
+            const compA = getVectorComponents(baseVectors.A.start, baseVectors.A.end);
+            const compB = getVectorComponents(baseVectors.B.start, baseVectors.B.end);
+
+            const sumComp = { x: compA.x + compB.x, y: compA.y + compB.y };
+
+            const targetEnd = {
+                x: origin.x + sumComp.x * GRID_SIZE,
+                y: origin.y - sumComp.y * GRID_SIZE
+            };
+
+            // Dibujar la suma desde el origen original hasta la esquina opuesta
+            drawArrow(origin, targetEnd, COLOR_SUM, 4);
+            drawNode(origin, COLOR_SUM);
+            drawNode(targetEnd, COLOR_SUM);
+
+            // Etiqueta
+            const midX = (origin.x + targetEnd.x) / 2;
+            const midY = (origin.y + targetEnd.y) / 2;
+            drawLabel({ x: midX, y: midY }, 'A + B', COLOR_SUM);
+        }
+
+        function drawLabel(point, text, color) {
+            ctx.save();
+            ctx.font = 'bold 13px sans-serif';
+            ctx.fillStyle = color;
+            ctx.shadowColor = 'rgba(0,0,0,0.8)';
+            ctx.shadowBlur = 4;
+            ctx.fillText(text, point.x + 8, point.y - 8);
+            ctx.restore();
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 1. Fondo e Infraestructura
+            drawGrid();
+            drawParallelogramGuides();
+
+            // 2. Cálculo de vectores efectivos con traslación por sliders
+            const effVectors = getEffectiveVectors();
+
+            // 3. Vector Suma (Si está activo)
+            drawSumVector();
+
+            // 4. Dibujar Flechas A y B
+            for (let key in effVectors) {
+                const v = effVectors[key];
+                const isSelected = dragTarget && dragTarget.vectorKey === key;
+                drawArrow(v.start, v.end, v.color, isSelected ? 4 : 3);
+            }
+
+            // 5. Dibujar Nodos/Extremos después de flechas para máxima nitidez
+            for (let key in effVectors) {
+                const v = effVectors[key];
+                const isStartSelected = dragTarget && dragTarget.vectorKey === key && dragTarget.type === 'start';
+                const isEndSelected = dragTarget && dragTarget.vectorKey === key && dragTarget.type === 'end';
+
+                drawNode(v.start, v.color, isStartSelected);
+                drawNode(v.end, v.color, isEndSelected);
+
+                const midX = (v.start.x + v.end.x) / 2;
+                const midY = (v.start.y + v.end.y) / 2;
+                drawLabel({ x: midX, y: midY }, v.label, v.color);
+            }
+
+            updateUI();
+        }
+
+        function distToSegment(p, v, w) {
+            const l2 = (w.x - v.x) ** 2 + (w.y - v.y) ** 2;
+            if (l2 === 0) return Math.hypot(p.x - v.x, p.y - v.y);
+            let t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2;
+            t = Math.max(0, Math.min(1, t));
+            return Math.hypot(p.x - (v.x + t * (w.x - v.x)), p.y - (v.y + t * (w.y - v.y)));
+        }
+
+        function getMousePos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return {
+                x: clientX - rect.left,
+                y: clientY - rect.top
+            };
+        }
+
+        function handlePointerDown(e) {
+            const pos = getMousePos(e);
+            dragTarget = null;
+
+            // Interacción sobre vectores base (tomando en cuenta posiciones efectivas o base)
+            for (let key of ['A', 'B']) {
+                const v = baseVectors[key];
+                
+                // Extremo final
+                if (Math.hypot(pos.x - v.end.x, pos.y - v.end.y) < NODE_HIT_RADIUS) {
+                    dragTarget = { vectorKey: key, type: 'end' };
+                    return;
+                }
+                // Origen
+                if (Math.hypot(pos.x - v.start.x, pos.y - v.start.y) < NODE_HIT_RADIUS) {
+                    dragTarget = { vectorKey: key, type: 'start' };
+                    return;
+                }
+            }
+
+            // Arrastre del cuerpo completo del vector
+            for (let key of ['A', 'B']) {
+                const v = baseVectors[key];
+                if (distToSegment(pos, v.start, v.end) < 12) {
+                    dragTarget = {
+                        vectorKey: key,
+                        type: 'body',
+                        offsetStart: { x: pos.x - v.start.x, y: pos.y - v.start.y },
+                        offsetEnd: { x: pos.x - v.end.x, y: pos.y - v.end.y }
+                    };
+                    return;
+                }
+            }
+        }
+
+        function handlePointerMove(e) {
+            if (!dragTarget) return;
+            const pos = getMousePos(e);
+            const v = baseVectors[dragTarget.vectorKey];
+
+            if (dragTarget.type === 'start') {
+                const newStartX = snap(pos.x);
+                const newStartY = snap(pos.y);
+                
+                // Al mover el origen común, trasladar ambos orígenes
+                const dx = newStartX - v.start.x;
+                const dy = newStartY - v.start.y;
+
+                v.start.x = newStartX;
+                v.start.y = newStartY;
+
+                // Si se mueve el origen, mantenemos el origen de A y B enlazado
+                if (dragTarget.vectorKey === 'A') {
+                    baseVectors.B.start.x += dx;
+                    baseVectors.B.start.y += dy;
+                    baseVectors.B.end.x += dx;
+                    baseVectors.B.end.y += dy;
+                } else {
+                    baseVectors.A.start.x += dx;
+                    baseVectors.A.start.y += dy;
+                    baseVectors.A.end.x += dx;
+                    baseVectors.A.end.y += dy;
+                }
+            } else if (dragTarget.type === 'end') {
+                v.end.x = snap(pos.x);
+                v.end.y = snap(pos.y);
+            } else if (dragTarget.type === 'body') {
+                const dx = v.end.x - v.start.x;
+                const dy = v.end.y - v.start.y;
+
+                let newStartX = snap(pos.x - dragTarget.offsetStart.x);
+                let newStartY = snap(pos.y - dragTarget.offsetStart.y);
+
+                v.start = { x: newStartX, y: newStartY };
+                v.end = { x: newStartX + dx, y: newStartY + dy };
+            }
+
+            draw();
+        }
+
+        function handlePointerUp() {
+            dragTarget = null;
+            draw();
+        }
+
+        canvas.addEventListener('mousedown', handlePointerDown);
+        window.addEventListener('mousemove', handlePointerMove);
+        window.addEventListener('mouseup', handlePointerUp);
+
+        canvas.addEventListener('touchstart', (e) => { handlePointerDown(e); e.preventDefault(); }, { passive: false });
+        window.addEventListener('touchmove', handlePointerMove, { passive: false });
+        window.addEventListener('touchend', handlePointerUp);
+
+        sliderA.addEventListener('input', () => {
+            sliderAVal.textContent = `${sliderA.value}%`;
+            draw();
+        });
+
+        sliderB.addEventListener('input', () => {
+            sliderBVal.textContent = `${sliderB.value}%`;
+            draw();
+        });
+
+        [chkGrid, chkSnap, chkGuides, chkSum].forEach(chk => {
+            chk.addEventListener('change', draw);
+        });
+
+        btnReset.addEventListener('click', initPositions);
+
+        function updateUI() {
+            const compA = getVectorComponents(baseVectors.A.start, baseVectors.A.end);
+            const compB = getVectorComponents(baseVectors.B.start, baseVectors.B.end);
+            const compSum = { x: compA.x + compB.x, y: compA.y + compB.y };
+
+            // Panel A
+            document.getElementById('vecA-mag').textContent = `|A| = ${getMagnitude(compA).toFixed(1)}`;
+            document.getElementById('vecA-comp').textContent = `Comp: (${compA.x.toFixed(1)}, ${compA.y.toFixed(1)})`;
+            document.getElementById('vecA-ang').textContent = `Áng: ${getAngle(compA).toFixed(0)}°`;
+
+            // Panel B
+            document.getElementById('vecB-mag').textContent = `|B| = ${getMagnitude(compB).toFixed(1)}`;
+            document.getElementById('vecB-comp').textContent = `Comp: (${compB.x.toFixed(1)}, ${compB.y.toFixed(1)})`;
+            document.getElementById('vecB-ang').textContent = `Áng: ${getAngle(compB).toFixed(0)}°`;
+
+            // Panel Suma
+            document.getElementById('vecSum-mag').textContent = `|R| = ${getMagnitude(compSum).toFixed(1)}`;
+            document.getElementById('vecSum-comp').textContent = `Comp: (${compSum.x.toFixed(1)}, ${compSum.y.toFixed(1)})`;
+            document.getElementById('vecSum-ang').textContent = `Áng: ${getAngle(compSum).toFixed(0)}°`;
+
+            // Visibilidad panel suma
+            if (chkSum.checked) {
+                panelSum.classList.remove('opacity-30');
+            } else {
+                panelSum.classList.add('opacity-30');
+            }
+        }
+
+        // Window load listener
+        window.onload = () => {
+            resizeCanvas();
+            initPositions();
+        };
+    </script>
+</body>
+</html>
