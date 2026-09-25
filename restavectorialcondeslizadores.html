@@ -13,6 +13,16 @@
         canvas {
             touch-action: none;
         }
+        <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']] // Permite usar $...$ para matemáticas en línea
+      }
+    };
+  </script>
+
+  <!-- 2. Carga de la librería MathJax desde CDN -->
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-ch
     </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans">
