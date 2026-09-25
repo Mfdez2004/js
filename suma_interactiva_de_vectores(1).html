@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suma de Vectores Interactiva (A + B)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        canvas {
+            touch-action: none;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans">
+
+    <!-- Header -->
+    <header class="bg-slate-800 border-b border-slate-700 p-4 shadow-md">
+        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+            <div>
+                <h1 class="text-xl font-bold text-emerald-400 flex items-center gap-2">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    Suma Vectorial: $\vec{A} + \vec{B}$
+                </h1>
+                <p class="text-xs text-slate-400">Arrastra orígenes, puntas o el cuerpo entero de los vectores.</p>
+            </div>
+            
+            <div id="status-badge" class="px-3 py-1.5 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                <span>Vector Suma no colocado correctamente</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 grid grid-cols-1 lg:grid-cols-4 gap-4">
+        
+        <!-- Canvas Area -->
+        <div class="lg:col-span-3 bg-slate-800 rounded-xl border border-slate-700 shadow-xl overflow-hidden flex flex-col relative">
+            
+            <!-- Controls Bar -->
+            <div class="p-3 bg-slate-800/80 border-b border-slate-700 flex flex-wrap items-center justify-between gap-3 text-xs">
+                <div class="flex items-center gap-4 flex-wrap">
+                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" id="chk-grid" checked class="rounded border-slate-600 text-emerald-500 focus:ring-emerald-500 bg-slate-700">
+                        <span>Cuadrícula</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" id="chk-snap" checked class="rounded border-slate-600 text-emerald-500 focus:ring-emerald-500 bg-slate-700">
+                        <span>Ajustar a Cuadrícula</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" id="chk-guides" checked class="rounded border-slate-600 text-emerald-500 focus:ring-emerald-500 bg-slate-700">
+                        <span>Guías Paralelogramo</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" id="chk-solution" class="rounded border-slate-600 text-emerald-500 focus:ring-emerald-500 bg-slate-700">
+                        <span class="text-amber-400 font-medium">Mostrar Solución Teórica</span>
+                    </label>
+                </div>
+                
+                <button id="btn-reset" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded transition duration-150 font-medium flex items-center gap-1.5">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    Reiniciar Posiciones
+                </button>
+            </div>
+
+            <!-- Canvas Container -->
+            <div class="flex-1 min-h-[500px] relative w-full h-full cursor-crosshair" id="canvas-container">
+                <canvas id="vectorCanvas" class="absolute inset-0 w-full h-full"></canvas>
+            </div>
+            
+            <div class="p-2 bg-slate-900/60 border-t border-slate-700/50 text-[11px] text-slate-400 flex justify-between">
+                <span>Puntos de control reducidos • Flechas en relieve</span>
+                <span>Arrastra el centro del vector para moverlo entero</span>
+            </div>
+        </div>
+
+        <!-- Sidebar / Info Panel -->
+        <div class="flex flex-col gap-4">
+            
+            <!-- Target Summary -->
+            <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 shadow-lg">
+                <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-3">Resumen de Vectores</h2>
+                
+                <!-- Vector A -->
+                <div class="mb-3 p-2.5 rounded bg-slate-900/60 border-l-4 border-red-500">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="font-bold text-red-400 text-sm">Vector A</span>
+                        <span id="vecA-mag" class="text-xs font-mono text-slate-300">|A| = 0.0</span>
+                    </div>
+                    <div class="text-xs font-mono text-slate-400 grid grid-cols-2 gap-1">
+                        <span id="vecA-comp">Comp: (0, 0)</span>
+                        <span id="vecA-ang">Áng: 0°</span>
+                    </div>
+                </div>
+
+                <!-- Vector B -->
+                <div class="mb-3 p-2.5 rounded bg-slate-900/60 border-l-4 border-blue-500">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="font-bold text-blue-400 text-sm">Vector B</span>
+                        <span id="vecB-mag" class="text-xs font-mono text-slate-300">|B| = 0.0</span>
+                    </div>
+                    <div class="text-xs font-mono text-slate-400 grid grid-cols-2 gap-1">
+                        <span id="vecB-comp">Comp: (0, 0)</span>
+                        <span id="vecB-ang">Áng: 0°</span>
+                    </div>
+                </div>
+
+                <!-- Suma Teórica -->
+                <div class="p-2.5 rounded bg-slate-900/60 border-l-4 border-emerald-500">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="font-bold text-emerald-400 text-sm">Suma Teórica (A + B)</span>
+                        <span id="vecSum-mag" class="text-xs font-mono text-slate-300">|R| = 0.0</span>
+                    </div>
+                    <div class="text-xs font-mono text-slate-400 grid grid-cols-2 gap-1">
+                        <span id="vecSum-comp">Comp: (0, 0)</span>
+                        <span id="vecSum-ang">Áng: 0°</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- User Sum Marker -->
+            <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 shadow-lg flex-1">
+                <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-3">Tu Propuesta (Vector R)</h2>
+                
+                <div class="p-3 rounded bg-slate-900/60 border-l-4 border-purple-500 space-y-2">
+                    <div class="flex justify-between items-center">
+                        <span class="font-bold text-purple-400 text-sm">Tu Vector Suma</span>
+                        <span id="userSum-mag" class="text-xs font-mono text-slate-300">|S| = 0.0</span>
+                    </div>
+                    <div class="text-xs font-mono text-slate-400 grid grid-cols-2 gap-1">
+                        <span id="userSum-comp">Comp: (0, 0)</span>
+                        <span id="userSum-ang">Áng: 0°</span>
+                    </div>
+                </div>
+
+                <!-- Precision Indicator -->
+                <div class="mt-4 p-3 rounded-lg bg-slate-900/40 border border-slate-700 text-center">
+                    <div class="text-xs text-slate-400 mb-1">Precisión de posición</div>
+                    <div id="accuracy-text" class="text-lg font-bold text-amber-400">0%</div>
+                    <div class="w-full bg-slate-700 h-1.5 rounded-full mt-2 overflow-hidden">
+                        <div id="accuracy-bar" class="bg-amber-400 h-full w-0 transition-all duration-300"></div>
+                    </div>
+                </div>
+
+                <!-- Instructions -->
+                <div class="mt-4 text-xs text-slate-400 space-y-1.5 border-t border-slate-700/60 pt-3">
+                    <p class="font-semibold text-slate-300">¿Cómo resolver?</p>
+                    <p>1. Traslada el vector <span class="text-blue-400">B</span> al extremo de <span class="text-red-400">A</span> (regla del triángulo) o usa la regla del paralelogramo.</p>
+                    <p>2. Arrastra el vector <span class="text-purple-400">Suma (R)</span> desde el origen de <span class="text-red-400">A</span> hasta la punta final.</p>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        // --- CONFIGURACIÓN Y CONSTANTES VISUALES ---
+        const GRID_SIZE = 25;
+        
+        // CAMBIOS SOLICITADOS:
+        const NODE_RADIUS = 5;       // Tamaño visual del punto de control (más pequeño)
+        const NODE_HIT_RADIUS = 16;  // Radio para hacer clic/arrastrar con facilidad
+        const ARROW_HEAD_LEN = 16;   // Longitud de la punta de la flecha
+        const ARROW_HEAD_ANGLE = Math.PI / 6; // Ángulo de las aletas de la flecha (30°)
+
+        // Colores
+        const COLOR_A = '#ef4444';       // Rojo
+        const COLOR_B = '#3b82f6';       // Azul
+        const COLOR_USER = '#a855f7';    // Púrpura (Vector del usuario)
+        const COLOR_THEORY = '#10b981';  // Verde (Suma Teórica)
+
+        // Elementos Canvas
+        const canvas = document.getElementById('vectorCanvas');
+        const ctx = canvas.getContext('2d');
+        const container = document.getElementById('canvas-container');
+
+        // Estado del Estado/Controles
+        const chkGrid = document.getElementById('chk-grid');
+        const chkSnap = document.getElementById('chk-snap');
+        const chkGuides = document.getElementById('chk-guides');
+        const chkSolution = document.getElementById('chk-solution');
+        const btnReset = document.getElementById('btn-reset');
+
+        // Estructura de Vectores
+        let vectors = {
+            A: { start: { x: 0, y: 0 }, end: { x: 0, y: 0 }, color: COLOR_A, label: 'A' },
+            B: { start: { x: 0, y: 0 }, end: { x: 0, y: 0 }, color: COLOR_B, label: 'B' },
+            User: { start: { x: 0, y: 0 }, end: { x: 0, y: 0 }, color: COLOR_USER, label: 'R' }
+        };
+
+        // Estado de Interacción
+        let dragTarget = null; // { vectorKey: 'A'|'B'|'User', type: 'start'|'end'|'body', offset: {x, y} }
+
+        // --- INICIALIZACIÓN Y EVENTOS ---
+        function resizeCanvas() {
+            const rect = container.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+            draw();
+        }
+
+        function initPositions() {
+            const width = canvas.width || 800;
+            const height = canvas.height || 600;
+
+            // Centro aproximado alineado a cuadrícula
+            const centerX = Math.floor(width / 3 / GRID_SIZE) * GRID_SIZE;
+            const centerY = Math.floor(height / 2 / GRID_SIZE) * GRID_SIZE;
+
+            // Vector A
+            vectors.A.start = { x: centerX, y: centerY };
+            vectors.A.end = { x: centerX + GRID_SIZE * 5, y: centerY - GRID_SIZE * 3 };
+
+            // Vector B (Concurrentes al inicio)
+            vectors.B.start = { x: centerX, y: centerY };
+            vectors.B.end = { x: centerX + GRID_SIZE * 3, y: centerY + GRID_SIZE * 4 };
+
+            // Vector del usuario (Desplazado para que el usuario lo arme)
+            vectors.User.start = { x: centerX, y: centerY + GRID_SIZE * 6 };
+            vectors.User.end = { x: centerX + GRID_SIZE * 4, y: centerY + GRID_SIZE * 6 };
+
+            draw();
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        btnReset.addEventListener('click', initPositions);
+
+        [chkGrid, chkSnap, chkGuides, chkSolution].forEach(chk => {
+            chk.addEventListener('change', draw);
+        });
+
+        // --- FUNCIONES MATEMÁTICAS / AUXILIARES ---
+        function snap(value) {
+            return chkSnap.checked ? Math.round(value / GRID_SIZE) * GRID_SIZE : value;
+        }
+
+        function getVectorComponents(vec) {
+            return {
+                x: (vec.end.x - vec.start.x) / GRID_SIZE,
+                y: -(vec.end.y - vec.start.y) / GRID_SIZE // Invertir Y para coordenadas estándar
+            };
+        }
+
+        function getMagnitude(comp) {
+            return Math.sqrt(comp.x * comp.x + comp.y * comp.y);
+        }
+
+        function getAngle(comp) {
+            let deg = Math.atan2(comp.y, comp.x) * (180 / Math.PI);
+            return deg < 0 ? deg + 360 : deg;
+        }
+
+        // --- DIBUJO EN CANVAS ---
+
+        // DIBUJAR FLECHA CON PUNTA DESTACADA
+        function drawArrow(from, to, color, width = 3, opacity = 1.0) {
+            ctx.save();
+            ctx.globalAlpha = opacity;
+            ctx.strokeStyle = color;
+            ctx.fillStyle = color;
+            ctx.lineWidth = width;
+            ctx.lineCap = 'round';
+
+            const dx = to.x - from.x;
+            const dy = to.y - from.y;
+            const angle = Math.atan2(dy, dx);
+            const dist = Math.hypot(dx, dy);
+
+            // 1. Cuerpo del Vector (Línea)
+            ctx.beginPath();
+            ctx.moveTo(from.x, from.y);
+            ctx.lineTo(to.x, to.y);
+            ctx.stroke();
+
+            // 2. Punta de Flecha Prominente (Triángulo Relleno)
+            if (dist > 5) {
+                ctx.beginPath();
+                ctx.moveTo(to.x, to.y);
+                ctx.lineTo(
+                    to.x - ARROW_HEAD_LEN * Math.cos(angle - ARROW_HEAD_ANGLE),
+                    to.y - ARROW_HEAD_LEN * Math.sin(angle - ARROW_HEAD_ANGLE)
+                );
+                ctx.lineTo(
+                    to.x - ARROW_HEAD_LEN * Math.cos(angle + ARROW_HEAD_ANGLE),
+                    to.y - ARROW_HEAD_LEN * Math.sin(angle + ARROW_HEAD_ANGLE)
+                );
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            ctx.restore();
+        }
+
+        // DIBUJAR PUNTO / NODO DISCRETO
+        function drawNode(point, color, isSelected = false) {
+            ctx.save();
+            ctx.beginPath();
+            // Punto pequeño (radio reducido)
+            ctx.arc(point.x, point.y, isSelected ? NODE_RADIUS + 2 : NODE_RADIUS, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.fill();
+            ctx.lineWidth = 1.5;
+            ctx.strokeStyle = '#ffffff';
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function drawGrid() {
+            if (!chkGrid.checked) return;
+            ctx.save();
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 0.5;
+
+            for (let x = 0; x < canvas.width; x += GRID_SIZE) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            for (let y = 0; y < canvas.height; y += GRID_SIZE) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
+
+        function drawGuides() {
+            if (!chkGuides.checked) return;
+
+            ctx.save();
+            ctx.setLineDash([4, 4]);
+            ctx.lineWidth = 1.5;
+
+            // Componentes de A y B
+            const compA = { x: vectors.A.end.x - vectors.A.start.x, y: vectors.A.end.y - vectors.A.start.y };
+            const compB = { x: vectors.B.end.x - vectors.B.start.x, y: vectors.B.end.y - vectors.B.start.y };
+
+            // Paralelogramo desde origen de A
+            ctx.strokeStyle = 'rgba(239, 68, 68, 0.4)'; // Guía A
+            ctx.beginPath();
+            ctx.moveTo(vectors.B.end.x, vectors.B.end.y);
+            ctx.lineTo(vectors.B.end.x + compA.x, vectors.B.end.y + compA.y);
+            ctx.stroke();
+
+            ctx.strokeStyle = 'rgba(59, 130, 246, 0.4)'; // Guía B
+            ctx.beginPath();
+            ctx.moveTo(vectors.A.end.x, vectors.A.end.y);
+            ctx.lineTo(vectors.A.end.x + compB.x, vectors.A.end.y + compB.y);
+            ctx.stroke();
+
+            ctx.restore();
+        }
+
+        function drawTheoreticalSolution() {
+            if (!chkSolution.checked) return;
+
+            const compA = getVectorComponents(vectors.A);
+            const compB = getVectorComponents(vectors.B);
+            const sumComp = { x: compA.x + compB.x, y: compA.y + compB.y };
+
+            const theoStart = vectors.A.start;
+            const theoEnd = {
+                x: theoStart.x + sumComp.x * GRID_SIZE,
+                y: theoStart.y - sumComp.y * GRID_SIZE
+            };
+
+            // Dibujar con transparencia
+            drawArrow(theoStart, theoEnd, COLOR_THEORY, 3, 0.6);
+        }
+
+        function drawLabel(point, text, color) {
+            ctx.save();
+            ctx.font = 'bold 13px sans-serif';
+            ctx.fillStyle = color;
+            ctx.shadowColor = 'rgba(0,0,0,0.8)';
+            ctx.shadowBlur = 4;
+            ctx.fillText(text, point.x + 8, point.y - 8);
+            ctx.restore();
+        }
+
+        // --- RENDERIZADO GENERAL ---
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 1. Fondo / Cuadrícula
+            drawGrid();
+
+            // 2. Guías y Solución Teórica
+            drawGuides();
+            drawTheoreticalSolution();
+
+            // 3. Dibujar Flechas
+            // NOTA: Dibujamos primero las flechas y LUEGO los nodos para que el punto no tape la punta
+            for (let key in vectors) {
+                const v = vectors[key];
+                const isSelected = dragTarget && dragTarget.vectorKey === key;
+                const width = isSelected ? 4 : 3;
+                drawArrow(v.start, v.end, v.color, width);
+            }
+
+            // 4. Dibujar Nodos/Extremos Pequeños
+            for (let key in vectors) {
+                const v = vectors[key];
+                const isStartSelected = dragTarget && dragTarget.vectorKey === key && dragTarget.type === 'start';
+                const isEndSelected = dragTarget && dragTarget.vectorKey === key && dragTarget.type === 'end';
+
+                drawNode(v.start, v.color, isStartSelected);
+                drawNode(v.end, v.color, isEndSelected);
+
+                // Etiqueta del Vector
+                const midX = (v.start.x + v.end.x) / 2;
+                const midY = (v.start.y + v.end.y) / 2;
+                drawLabel({ x: midX, y: midY }, v.label, v.color);
+            }
+
+            // 5. Actualizar interfaz lateral
+            updateUI();
+        }
+
+        // --- LÓGICA DE INTERACCIÓN (MOUSE / TOUCH) ---
+
+        function distToSegment(p, v, w) {
+            const l2 = (w.x - v.x) ** 2 + (w.y - v.y) ** 2;
+            if (l2 === 0) return Math.hypot(p.x - v.x, p.y - v.y);
+            let t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2;
+            t = Math.max(0, Math.min(1, t));
+            return Math.hypot(p.x - (v.x + t * (w.x - v.x)), p.y - (v.y + t * (w.y - v.y)));
+        }
+
+        function getMousePos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return {
+                x: clientX - rect.left,
+                y: clientY - rect.top
+            };
+        }
+
+        function handlePointerDown(e) {
+            const pos = getMousePos(e);
+            dragTarget = null;
+
+            // Prioridad 1: Nodos de extremos (usamos NODE_HIT_RADIUS para facilitar clic)
+            for (let key of ['User', 'A', 'B']) {
+                const v = vectors[key];
+                if (Math.hypot(pos.x - v.end.x, pos.y - v.end.y) < NODE_HIT_RADIUS) {
+                    dragTarget = { vectorKey: key, type: 'end' };
+                    return;
+                }
+                if (Math.hypot(pos.x - v.start.x, pos.y - v.start.y) < NODE_HIT_RADIUS) {
+                    dragTarget = { vectorKey: key, type: 'start' };
+                    return;
+                }
+            }
+
+            // Prioridad 2: Cuerpo del vector (para traslación completa)
+            for (let key of ['User', 'A', 'B']) {
+                const v = vectors[key];
+                if (distToSegment(pos, v.start, v.end) < 12) {
+                    dragTarget = {
+                        vectorKey: key,
+                        type: 'body',
+                        offsetStart: { x: pos.x - v.start.x, y: pos.y - v.start.y },
+                        offsetEnd: { x: pos.x - v.end.x, y: pos.y - v.end.y }
+                    };
+                    return;
+                }
+            }
+        }
+
+        function handlePointerMove(e) {
+            if (!dragTarget) return;
+            const pos = getMousePos(e);
+            const v = vectors[dragTarget.vectorKey];
+
+            if (dragTarget.type === 'start') {
+                v.start.x = snap(pos.x);
+                v.start.y = snap(pos.y);
+            } else if (dragTarget.type === 'end') {
+                v.end.x = snap(pos.x);
+                v.end.y = snap(pos.y);
+            } else if (dragTarget.type === 'body') {
+                const dx = v.end.x - v.start.x;
+                const dy = v.end.y - v.start.y;
+
+                let newStartX = snap(pos.x - dragTarget.offsetStart.x);
+                let newStartY = snap(pos.y - dragTarget.offsetStart.y);
+
+                v.start = { x: newStartX, y: newStartY };
+                v.end = { x: newStartX + dx, y: newStartY + dy };
+            }
+
+            draw();
+        }
+
+        function handlePointerUp() {
+            dragTarget = null;
+            draw();
+        }
+
+        canvas.addEventListener('mousedown', handlePointerDown);
+        window.addEventListener('mousemove', handlePointerMove);
+        window.addEventListener('mouseup', handlePointerUp);
+
+        canvas.addEventListener('touchstart', (e) => { handlePointerDown(e); e.preventDefault(); }, { passive: false });
+        window.addEventListener('touchmove', handlePointerMove, { passive: false });
+        window.addEventListener('touchend', handlePointerUp);
+
+        // --- ACTUALIZACIÓN DE DATOS Y PANEL LATERAL ---
+        function updateUI() {
+            const compA = getVectorComponents(vectors.A);
+            const compB = getVectorComponents(vectors.B);
+            const compUser = getVectorComponents(vectors.User);
+
+            const compSum = { x: compA.x + compB.x, y: compA.y + compB.y };
+
+            // Render A
+            document.getElementById('vecA-mag').textContent = `|A| = ${getMagnitude(compA).toFixed(1)}`;
+            document.getElementById('vecA-comp').textContent = `Comp: (${compA.x.toFixed(1)}, ${compA.y.toFixed(1)})`;
+            document.getElementById('vecA-ang').textContent = `Áng: ${getAngle(compA).toFixed(0)}°`;
+
+            // Render B
+            document.getElementById('vecB-mag').textContent = `|B| = ${getMagnitude(compB).toFixed(1)}`;
+            document.getElementById('vecB-comp').textContent = `Comp: (${compB.x.toFixed(1)}, ${compB.y.toFixed(1)})`;
+            document.getElementById('vecB-ang').textContent = `Áng: ${getAngle(compB).toFixed(0)}°`;
+
+            // Render Suma Teórica
+            document.getElementById('vecSum-mag').textContent = `|R| = ${getMagnitude(compSum).toFixed(1)}`;
+            document.getElementById('vecSum-comp').textContent = `Comp: (${compSum.x.toFixed(1)}, ${compSum.y.toFixed(1)})`;
+            document.getElementById('vecSum-ang').textContent = `Áng: ${getAngle(compSum).toFixed(0)}°`;
+
+            // Render Usuario
+            document.getElementById('userSum-mag').textContent = `|S| = ${getMagnitude(compUser).toFixed(1)}`;
+            document.getElementById('userSum-comp').textContent = `Comp: (${compUser.x.toFixed(1)}, ${compUser.y.toFixed(1)})`;
+            document.getElementById('userSum-ang').textContent = `Áng: ${getAngle(compUser).toFixed(0)}°`;
+
+            // Validación de la respuesta del usuario
+            // El vector usuario debe tener el origen en A.start y la punta en la suma final
+            const targetStart = vectors.A.start;
+            const targetEnd = {
+                x: targetStart.x + compSum.x * GRID_SIZE,
+                y: targetStart.y - compSum.y * GRID_SIZE
+            };
+
+            const distStart = Math.hypot(vectors.User.start.x - targetStart.x, vectors.User.start.y - targetStart.y);
+            const distEnd = Math.hypot(vectors.User.end.x - targetEnd.x, vectors.User.end.y - targetEnd.y);
+
+            const maxError = 25; // Margen de tolerancia
+            const error = distStart + distEnd;
+            let accuracy = Math.max(0, Math.min(100, Math.round(100 - (error / maxError) * 100)));
+
+            const isCorrect = error < 12;
+
+            const accuracyText = document.getElementById('accuracy-text');
+            const accuracyBar = document.getElementById('accuracy-bar');
+            const statusBadge = document.getElementById('status-badge');
+
+            accuracyText.textContent = isCorrect ? "100% (¡Correcto!)" : `${accuracy}%`;
+            accuracyBar.style.width = `${accuracy}%`;
+
+            if (isCorrect) {
+                accuracyText.className = "text-lg font-bold text-emerald-400";
+                accuracyBar.className = "bg-emerald-400 h-full transition-all duration-300";
+
+                statusBadge.className = "px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-2";
+                statusBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400"></span><span>¡Vector Suma Correcto!</span>`;
+            } else {
+                accuracyText.className = "text-lg font-bold text-amber-400";
+                accuracyBar.className = "bg-amber-400 h-full transition-all duration-300";
+
+                statusBadge.className = "px-3 py-1.5 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center gap-2";
+                statusBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span><span>Ajusta el Vector Suma</span>`;
+            }
+        }
+
+        // Inicializar al cargar
+        window.onload = () => {
+            resizeCanvas();
+            initPositions();
+        };
+    </script>
+</body>
+</html>
