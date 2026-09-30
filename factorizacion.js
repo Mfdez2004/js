@@ -55,18 +55,18 @@ function factoriza(selected, inpTxt){
         }));
 
         currentIndex = 0;
-        isReviewMode = false;
-
-        document.getElementById('examScreen').style.display = 'flex';
-        document.getElementById('resultsScreen').style.display = 'none';
-        document.getElementById('reviewIndicator').style.display = 'none';
-        document.getElementById('instructionsBox').style.display = 'block';
-        document.getElementById('btnBackToSummary').style.display = 'none';
-        document.getElementById('btnPrevEx').style.display = 'none';
-        document.getElementById('btnAddStep').style.display = 'inline-flex';
-        document.getElementById('btnDeleteStep').style.display = 'inline-flex';
-        document.getElementById('btnNextEx').textContent = "Siguiente Número ➔";
-
+        //isReviewMode = false;
+        if (!isReviewMode){
+          document.getElementById('examScreen').style.display = 'flex';
+          document.getElementById('resultsScreen').style.display = 'none';
+          document.getElementById('reviewIndicator').style.display = 'none';
+          document.getElementById('instructionsBox').style.display = 'block';
+          document.getElementById('btnBackToSummary').style.display = 'none';
+          document.getElementById('btnPrevEx').style.display = 'none';
+          document.getElementById('btnAddStep').style.display = 'inline-flex';
+          document.getElementById('btnDeleteStep').style.display = 'inline-flex';
+          document.getElementById('btnNextEx').textContent = "Siguiente Número ➔";
+        }
         loadExercise(0);
     }
 
