@@ -8,15 +8,16 @@ function factoriza(selected, inpTxt){
     ];
     let examExercises = [];
     let currentIndex = 0;
-    let isReviewMode = false;
+    let isReviewMode = inpTxt[0].readOnly;
 
     let canvas = null;
     let activeFactorBox = null;
     let activeQuotientBox = null;
 
     // --- 2. INICIALIZACIÓN ---
-    window.addEventListener('load', () => {
+    //window.addEventListener('load', () => {
         initFabricCanvas();
+        
         startNewExam();
 
         document.getElementById('btnAddStep').addEventListener('click', handleAddStep);
@@ -26,7 +27,7 @@ function factoriza(selected, inpTxt){
         document.getElementById('btnRestart').addEventListener('click', startNewExam);
         document.getElementById('btnReviewBoard').addEventListener('click', enterReviewMode);
         document.getElementById('btnBackToSummary').addEventListener('click', showResultsSummary);
-    });
+    //});
 
     function initFabricCanvas() {
         canvas = new fabric.Canvas('factorCanvas', {
@@ -82,6 +83,7 @@ function factoriza(selected, inpTxt){
             document.getElementById('btnNextEx').textContent = "Siguiente ➔";
         } else {
             document.getElementById('btnPrevEx').style.display = 'none';
+            btn.style.display = currentIndex === 9 ? 'none' : 'block';
             document.getElementById('btnNextEx').textContent = currentIndex === 9 ? "Finalizar y Corregir 🏁" : "Siguiente Número ➔";
         }
 
