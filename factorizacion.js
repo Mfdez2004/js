@@ -6,8 +6,6 @@ function factoriza(selected, inpTxt){
         54, 60, 64, 72, 75, 80, 81, 90, 96, 100, 108, 120, 125, 128, 135, 144,
         150, 160, 162, 180, 192, 200, 216, 225, 240, 243, 250, 256, 270, 288, 300
     ];
-    //let selected = eval('{#l1_10#}');
-
     let examExercises = [];
     let currentIndex = 0;
     let isReviewMode = false;
