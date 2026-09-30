@@ -1,15 +1,12 @@
-    let inpTxt = "";
-    jQuery(document).ready(function() {
-        inpTxt = jQuery('#ACT2T01P001').children('p').children('input');
-    });
 
+function factoriza(selected, inpTxt){
     // --- 1. CONFIGURACIÓN Y NÚMEROS VÁLIDOS (5-smooth <= 300) ---
     const VALID_NUMBERS = [
         6, 8, 9, 10, 12, 15, 16, 18, 20, 24, 25, 27, 30, 32, 36, 40, 45, 48, 50,
         54, 60, 64, 72, 75, 80, 81, 90, 96, 100, 108, 120, 125, 128, 135, 144,
         150, 160, 162, 180, 192, 200, 216, 225, 240, 243, 250, 256, 270, 288, 300
     ];
-    let selected = eval('{#l1_10#}');
+    //let selected = eval('{#l1_10#}');
 
     let examExercises = [];
     let currentIndex = 0;
@@ -506,3 +503,4 @@
             .map(([f, count]) => count > 1 ? `${f}${mapSuperscript[count] || '^' + count}` : f)
             .join(' × ');
     }
+}
