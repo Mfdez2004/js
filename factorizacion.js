@@ -83,7 +83,7 @@ function factoriza(selected, inpTxt){
             document.getElementById('btnNextEx').textContent = "Siguiente ➔";
         } else {
             document.getElementById('btnPrevEx').style.display = 'none';
-            btn.style.display = currentIndex === 9 ? 'none' : 'block';
+            document.getElementById('btnNextEx').style.display = currentIndex === 9 ? 'none' : 'block';
             document.getElementById('btnNextEx').textContent = currentIndex === 9 ? "Finalizar y Corregir 🏁" : "Siguiente Número ➔";
         }
 
