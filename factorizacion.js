@@ -67,6 +67,12 @@ function factoriza(selected, inpTxt){
           document.getElementById('btnDeleteStep').style.display = 'inline-flex';
           document.getElementById('btnNextEx').textContent = "Siguiente Número ➔";
         }
+        else {
+          document.getElementById('instructionsBox').style.display = 'none';
+          document.getElementById('btnAddStep').style.display = 'none';
+          document.getElementById('btnDeleteStep').style.display = 'none';
+              
+        }
         loadExercise(0);
     }
 
