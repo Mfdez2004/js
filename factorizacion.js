@@ -236,6 +236,7 @@ function factoriza(selected, inpTxt){
     }
 
     // Crea cuadros editables con corrección del signo '?'
+// --- CREA CUADROS EDITABLES CON RECUPERACIÓN DE '?' ---
     function createEditableBox(defaultText, left, top, color, originX) {
         const box = new fabric.IText(defaultText, {
             left: left,
@@ -258,10 +259,19 @@ function factoriza(selected, inpTxt){
         box._initialLeft = left;
         box._initialTop = top;
 
-        // CORRECCIÓN INTERROGACIÓN: Elimina automáticamente la '?' al enfocar o empezar a escribir
+        // Elimina automáticamente la '?' al enfocar o empezar a escribir
         const clearInterrogation = () => {
             if (box.text.includes('?')) {
                 box.text = box.text.replace(/\?/g, '');
+                canvas.renderAll();
+            }
+        };
+
+        // Restaura la '?' si el cuadro de texto se queda completamente vacío
+        const restoreInterrogationIfNeeded = () => {
+            const cleanText = box.text.replace(/\?/g, '').trim();
+            if (cleanText === "") {
+                box.text = '?';
                 canvas.renderAll();
             }
         };
@@ -277,7 +287,7 @@ function factoriza(selected, inpTxt){
                 const factorVal = parseInt(activeFactorBox.text.replace(/\?/g, '').trim());
                 const quotientVal = parseInt(activeQuotientBox.text.replace(/\?/g, '').trim());
 
-                // Si al menos uno de los campos tiene un valor numérico, lo incluimos de forma borrador/temporal
+                // Si al menos uno de los campos tiene un valor numérico, lo incluimos de forma temporal
                 if (!isNaN(factorVal) || !isNaN(quotientVal)) {
                     currentSteps.push({
                         factor: isNaN(factorVal) ? null : factorVal,
@@ -295,11 +305,12 @@ function factoriza(selected, inpTxt){
         box.on('editing:entered', clearInterrogation);
         box.on('selection:created', clearInterrogation);
         box.on('changed', actualiza);
+        
+        // Evento añadido para recuperar el signo de interrogación al salir del campo si está vacío
+        box.on('editing:exited', restoreInterrogationIfNeeded);
 
         return box;
-    }
-
-    // --- 5. LÓGICA DE AÑADIR / BORRAR PASOS ---
+    }    // --- 5. LÓGICA DE AÑADIR / BORRAR PASOS ---
     function handleAddStep(e) {
         if (e) e.preventDefault(); // Evita recargas en Moodle / Formularios
         if (isReviewMode || !activeFactorBox || !activeQuotientBox) return;
