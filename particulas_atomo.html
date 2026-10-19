@@ -115,7 +115,7 @@ function dibujarAtomo(a) {
   const txtSymbol = new fabric.Text(a.simbolo, {
     originX: 'center', originY: 'center',
     left: 0.5 * anchura, top: 0.5 * altura,
-    stroke: 'black', strokeUniform: true,
+    stroke: 'black', fill: 'darkGreen', strokeUniform: true,
     fontFamily: fuente, fontStyle: 'oblique', fontWeight: 'bold', fontSize: 90,
     selectable: false
   });
@@ -126,19 +126,19 @@ function dibujarAtomo(a) {
   const txtA = new fabric.Text(a.A.toString(), {
     originX: 'right', originY: 'center',
     left: txtSymbol.left - txtSymbol.width / 2, top: txtSymbol.top - 40,
-    stroke: 'red', fontFamily: fuente, fontStyle: 'oblique', fontWeight: 'bold', fontSize: 30,
+    stroke: 'black', fill: 'red', fontFamily: fuente, fontStyle: 'oblique', fontWeight: 'bold', fontSize: 30,
     selectable: false
   });
   const txtZ = new fabric.Text(a.Z.toString(), {
     originX: 'right', originY: 'center',
     left: txtSymbol.left - txtSymbol.width / 2 - 4, top: 130,
-    stroke: 'blue', fontFamily: fuente, fontStyle: 'oblique', fontWeight: 'bold', fontSize: 30,
+    stroke: 'black', fill: 'blue', fontFamily: fuente, fontStyle: 'oblique', fontWeight: 'bold', fontSize: 30,
     selectable: false
   });
   const txtCarga = new fabric.Text(textoCarga(a.carga), {
     originX: 'left', originY: 'center',
     left: txtSymbol.left + txtSymbol.width / 2 + 10, top: txtSymbol.top - 40,
-    stroke: 'purple', fontFamily: fuente, fontStyle: 'oblique', fontWeight: 'bold', fontSize: 30,
+    fill: 'purple', stroke: 'black', fontFamily: fuente, fontStyle: 'oblique', fontWeight: 'bold', fontSize: 30,
     selectable: false
   });
   canvas1.add(rec, txtSymbol, txtA, txtZ, txtCarga);
