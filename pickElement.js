@@ -2,10 +2,10 @@
             // Initiate a Canvas instance  
             var canvas1 = new fabric.Canvas(canvas);
 
-            var simbolo = eval('{#simbolo#}');
-            var Z = eval('{#Z#}');
-            var A = eval('{#A#}');
-            var carga = eval('{#cargaEl#}');
+            //var simbolo = eval('{#simbolo#}');
+            //var Z = eval('{#Z#}');
+            //var A = eval('{#A#}');
+            //var carga = eval('{#cargaEl#}');
             var cargaTxt = "";
             switch (carga) {
                 case 0:
