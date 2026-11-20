@@ -6,6 +6,9 @@ function factoriza(selected, inpTxt) {
         150, 160, 162, 180, 192, 200, 216, 225, 240, 243, 250, 256, 270, 288, 300
     ];
 
+    const GREEN_COLOR = '#15803d';
+    const RED_COLOR = '#b91c1c';
+
     let examExercises = [];
     let currentIndex = 0;
     const hasInputs = Array.isArray(inpTxt) || (inpTxt && typeof inpTxt.length === 'number' && inpTxt.length > 0);
@@ -44,7 +47,6 @@ function factoriza(selected, inpTxt) {
         try {
             const parsed = JSON.parse(inpTxt[index].value);
             if (!Array.isArray(parsed)) return [];
-            // Filtra posibles filas temporales incompletas si las hubiera
             return parsed.filter(
                 step => step && Number.isInteger(step.factor) && Number.isInteger(step.quotient)
             );
@@ -90,8 +92,6 @@ function factoriza(selected, inpTxt) {
             document.getElementById('instructionsBox').style.display = 'none';
             document.getElementById('btnAddStep').style.display = 'none';
             document.getElementById('btnDeleteStep').style.display = 'none';
-            // Evaluamos para saber aciertos/fallos (y comparativa en el lienzo),
-            // pero mostramos directamente la vista gráfica del ejercicio 1
             evaluateExercises();
             enterReviewMode();
         }
@@ -127,7 +127,16 @@ function factoriza(selected, inpTxt) {
         const lineHeight = 42;
 
         if (isReviewMode && !ex.isCorrect) {
-            drawVerticalFactorization(140, startY, lineHeight, ex.number, ex.userSteps, true, "Tu Respuesta (Incorrecta)");
+            // Columna izquierda: respuesta incorrecta en rojo
+            drawVerticalFactorization(
+                140,
+                startY,
+                lineHeight,
+                ex.number,
+                ex.userSteps,
+                RED_COLOR,
+                "Tu Respuesta (Incorrecta)"
+            );
 
             const middleDivider = new fabric.Line([275, 20, 275, 340], {
                 stroke: '#cbd5e1',
@@ -145,16 +154,29 @@ function factoriza(selected, inpTxt) {
                 correctSteps.push({ factor: f, quotient: tempNum });
             });
 
-            drawVerticalFactorization(410, startY, lineHeight, ex.number, correctSteps, false, "Factorización Correcta");
+            // Columna derecha: factorización correcta en verde
+            drawVerticalFactorization(
+                410,
+                startY,
+                lineHeight,
+                ex.number,
+                correctSteps,
+                GREEN_COLOR,
+                "Factorización Correcta"
+            );
         } else {
+            // En modo revisión con respuesta correcta: todo en verde
+            const reviewColor = isReviewMode ? GREEN_COLOR : null;
+            const reviewTitle = isReviewMode ? "Respuesta Correcta" : null;
+
             drawVerticalFactorization(
                 275,
                 startY,
                 lineHeight,
                 ex.number,
                 ex.userSteps,
-                isReviewMode,
-                isReviewMode ? "Respuesta Correcta" : null
+                reviewColor,
+                reviewTitle
             );
 
             const lastQuotient = ex.userSteps.length > 0
@@ -179,7 +201,7 @@ function factoriza(selected, inpTxt) {
         canvas.renderAll();
     }
 
-    function drawVerticalFactorization(centerX, startY, lineHeight, number, steps, isErrorStyle, titleHeader) {
+    function drawVerticalFactorization(centerX, startY, lineHeight, number, steps, highlightColor, titleHeader) {
         if (titleHeader) {
             const titleText = new fabric.Text(titleHeader, {
                 left: centerX,
@@ -187,7 +209,7 @@ function factoriza(selected, inpTxt) {
                 fontFamily: 'Segoe UI, sans-serif',
                 fontSize: 15,
                 fontWeight: 'bold',
-                fill: isErrorStyle ? '#b91c1c' : '#15803d',
+                fill: highlightColor || GREEN_COLOR,
                 originX: 'center',
                 selectable: false,
                 evented: false
@@ -226,7 +248,7 @@ function factoriza(selected, inpTxt) {
                 fontFamily: 'Segoe UI, sans-serif',
                 fontSize: 24,
                 fontWeight: 'bold',
-                fill: isReviewMode ? (isErrorStyle ? '#b91c1c' : '#15803d') : '#3b82f6',
+                fill: isReviewMode ? (highlightColor || GREEN_COLOR) : '#3b82f6',
                 originX: 'left',
                 selectable: false,
                 evented: false
@@ -239,7 +261,7 @@ function factoriza(selected, inpTxt) {
                 fontFamily: 'Segoe UI, sans-serif',
                 fontSize: 24,
                 fontWeight: 'bold',
-                fill: isReviewMode ? (isErrorStyle ? '#b91c1c' : '#15803d') : '#8b5cf6',
+                fill: isReviewMode ? (highlightColor || GREEN_COLOR) : '#8b5cf6',
                 originX: 'right',
                 selectable: false,
                 evented: false
@@ -338,7 +360,6 @@ function factoriza(selected, inpTxt) {
         const total = examExercises.length;
 
         if (!isReviewMode) {
-            // Guarda automáticamente el paso en curso si ambos campos tienen número
             if (activeFactorBox && activeQuotientBox) {
                 const fVal = parseInt(activeFactorBox.text.replace(/\?/g, '').trim(), 10);
                 const qVal = parseInt(activeQuotientBox.text.replace(/\?/g, '').trim(), 10);
@@ -448,6 +469,7 @@ function factoriza(selected, inpTxt) {
             const userFactorsStr = ex.userSteps.map(s => s.factor).join(' × ') || 'Ninguna';
             const correctFactorsStr = ex.correctFactors.join(' × ');
             const correctPowerStr = formatPowers(ex.correctFactors);
+            const userAnswerColor = ex.isCorrect ? GREEN_COLOR : 'inherit';
 
             card.innerHTML = `
                 <div class="card-title-bar">
@@ -457,9 +479,9 @@ function factoriza(selected, inpTxt) {
                     </span>
                 </div>
                 <div class="factor-comparison">
-                    <div><b>Tu respuesta:</b> ${userFactorsStr}</div>
-                    ${!ex.isCorrect ? `<div style="color: #b91c1c; font-size: 0.85rem; margin-top:2px;">⚠️ ${ex.errorMessage}</div>` : ''}
-                    <div class="correct-ans" style="margin-top: 4px;">
+                    <div style="color: ${userAnswerColor};"><b>Tu respuesta:</b> ${userFactorsStr}</div>
+                    ${!ex.isCorrect ? `<div style="color: ${RED_COLOR}; font-size: 0.85rem; margin-top:2px;">⚠️ ${ex.errorMessage}</div>` : ''}
+                    <div class="correct-ans" style="color: ${GREEN_COLOR}; margin-top: 4px;">
                         <b>Factorización Correcta:</b> ${correctFactorsStr} (${correctPowerStr})
                     </div>
                 </div>
