@@ -90,8 +90,10 @@ function factoriza(selected, inpTxt) {
             document.getElementById('instructionsBox').style.display = 'none';
             document.getElementById('btnAddStep').style.display = 'none';
             document.getElementById('btnDeleteStep').style.display = 'none';
+            // Evaluamos para saber aciertos/fallos (y comparativa en el lienzo),
+            // pero mostramos directamente la vista gráfica del ejercicio 1
             evaluateExercises();
-            showResultsSummary();
+            enterReviewMode();
         }
     }
 
