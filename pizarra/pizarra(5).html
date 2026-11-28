@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pizarra digital</title>
+<style>
+:root{--bg:#e5e7eb;--bar:#fff;--fg:#1f2937;--bd:#d1d5db;--ac:#2563eb;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#111827;--bar:#1f2937;--fg:#e5e7eb;--bd:#4b5563;--ac:#60a5fa;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#111827;--bar:#1f2937;--fg:#e5e7eb;--bd:#4b5563;--ac:#60a5fa;color-scheme:dark}
+html,body{height:100%;margin:0}
+body{display:flex;flex-direction:column;background:var(--bg);color:var(--fg);font:14px system-ui,sans-serif;overflow:hidden}
+.bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:6px 8px;background:var(--bar);border-bottom:1px solid var(--bd)}
+button,select,input[type=text]{font:inherit;color:var(--fg);background:var(--bar);border:1px solid var(--bd);border-radius:6px;padding:5px 9px;cursor:pointer}
+input[type=text]{cursor:text}
+input[type=color]{width:34px;height:30px;padding:0;border:1px solid var(--bd);border-radius:6px;background:none}
+button.on{background:var(--ac);border-color:var(--ac);color:#fff}
+.sp{width:1px;align-self:stretch;background:var(--bd);margin:0 4px}
+.rg{display:flex;align-items:center;gap:4px}.rg input{width:90px}.rg span{min-width:24px;font-size:12px;opacity:.8}
+#pos,#st{opacity:.7;font-size:12px}
+#board{flex:1;min-height:0;width:100%;display:block;touch-action:none;user-select:none;-webkit-user-select:none}
+foreignObject{pointer-events:none}
+</style></head><body>
+<div class="bar">
+ <select id="nb" title="Cuaderno"></select><input type="text" id="nm" size="14" title="Nombre del cuaderno">
+ <button id="nn">+ Cuaderno</button><button id="dn">Borrar cuaderno</button><span class="sp"></span>
+ <button id="pp">‹</button><b id="pn"></b><button id="pq">›</button><button id="pa">+ Página</button><button id="pd">Borrar página</button><span class="sp"></span>
+ <button id="bsave">💾 Guardar SVG</button><button id="bolf">💾 Guardar OLF</button><button id="bload">📂 Cargar</button>
+ <input id="ld" type="file" accept=".svg,.olf,.zip,.json,image/svg+xml" multiple hidden>
+</div>
+<div class="bar">
+ <button data-tool="hand">✋ Mano</button><button data-tool="sel">⬚ Selección</button><button data-tool="pen">✏️ Lápiz</button><button data-tool="er">🧽 Goma</button>
+ <input type="color" id="col" value="#1a1a1a" title="Elegir color"><span id="pal" style="display:flex;gap:4px"></span><button data-tool="eye" title="Toma el color de un trazo">💧 Cuentagotas</button>
+ <label class="rg" title="Grosor del lápiz">✏️ <input type="range" id="szp" min="1" max="40" value="5"><span id="vp">5</span></label><label class="rg" title="Grosor de la goma">🧽 <input type="range" id="sze" min="4" max="120" value="20"><span id="ve">20</span></label><label class="rg" title="Zoom (también Ctrl + rueda)">🔍 <input type="range" id="zs" min="10" max="400" value="100"><span id="vz">100%</span></label><button id="zf" title="Ajustar el lienzo a la ventana">Ajustar</button>
+ <span class="sp"></span>
+ <button id="bimg">🖼 Imagen</button><button id="bvid">🎞 Vídeo</button>
+ <input id="fi" type="file" accept="image/*" multiple hidden><input id="fv" type="file" accept="video/*" hidden>
+ <span class="sp"></span>
+ <button id="bun">↶ Deshacer</button><button id="bre">↷ Rehacer</button><span class="sp"></span>
+ <button id="bcut">✂ Cortar</button><button id="bcopy">⧉ Copiar</button><button id="bpaste">📋 Pegar</button>
+ <button id="rl" title="Girar -15°">⟲</button><button id="rr" title="Girar +15°">⟳</button><button id="bdel">🗑 Eliminar</button>
+ <span id="pos"></span><span id="st"></span>
+</div>
+<svg id="board" xmlns="http://www.w3.org/2000/svg">
+ <defs><pattern id="gr" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="#e5e7eb"/></pattern></defs>
+ <rect width="3840" height="2160" fill="#fff"/><rect width="3840" height="2160" fill="url(#gr)" stroke="#9ca3af" stroke-width="2"/>
+ <g id="ly"></g><g id="ov"></g>
+</svg>
+<script>
+const W=3840,H=2160,$=s=>document.querySelector(s);
+let S={nbs:[{n:'Cuaderno 1',pgs:[[]]}],c:0,p:0},tool='sel',vx=0,vy=0,zm=1,sel=[],clip=[],drag=null;
+try{const d=JSON.parse(localStorage.getItem('pizarra-v1')||'null');if(d&&d.nbs&&d.nbs.length)S=d}catch(e){}
+const svg=$('#board'),layer=$('#ly'),ov=$('#ov');
+const objs=()=>S.nbs[S.c].pgs[S.p],nid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const save=()=>{try{localStorage.setItem('pizarra-v1',JSON.stringify(S))}catch(e){msg('Sin espacio local: guarda en SVG')}};
+let mt;function msg(t){$('#st').textContent=t;clearTimeout(mt);mt=setTimeout(()=>$('#st').textContent='',3500)}
+
+/* ---------- geometría y marcado ---------- */
+const ctr=o=>[o.b.x+o.b.w/2,o.b.y+o.b.h/2];
+const tfm=o=>{const[c,d]=ctr(o);return`translate(${o.tx} ${o.ty}) rotate(${o.r} ${c} ${d})`};
+const dd=o=>'M'+o.pts.map(p=>p.join(' ')).join(' L');
+function bb(o){const x=o.pts.map(p=>p[0]),y=o.pts.map(p=>p[1]),h=o.s/2,a=Math.min(...x)-h,c=Math.min(...y)-h;o.b={x:a,y:c,w:Math.max(...x)+h-a,h:Math.max(...y)+h-c}}
+const inner=o=>o.t=='p'?`<path d="${dd(o)}" fill="none" stroke="${o.c}" stroke-width="${o.s}" stroke-linecap="round" stroke-linejoin="round"${o.op<1?` opacity="${o.op}"`:''}/>`
+ :o.t=='i'?`<image href="${o.src}" x="0" y="0" width="${o.b.w}" height="${o.b.h}" preserveAspectRatio="none"/>`
+ :`<foreignObject x="0" y="0" width="${o.b.w}" height="${o.b.h}"><video xmlns="http://www.w3.org/1999/xhtml" src="${o.src}" controls="controls" style="width:100%;height:100%;background:#000"></video></foreignObject>`;
+const mk=o=>`<rect x="-9999" y="-9999" width="30000" height="30000" fill="#fff"/>`+o.er.map(s=>`<path d="${dd(s)}" fill="none" stroke="#000" stroke-width="${s.w}" stroke-linecap="round" stroke-linejoin="round"/>`).join('');
+const gs=o=>`<g data-id="${o.id}" transform="${tfm(o)}">${o.er&&o.er.length?`<mask id="m-${o.id}" maskUnits="userSpaceOnUse" x="-9999" y="-9999" width="30000" height="30000">${mk(o)}</mask><g mask="url(#m-${o.id})">${inner(o)}</g>`:inner(o)}</g>`;
+const el=id=>layer.querySelector(`[data-id="${id}"]`),cr=id=>el(id).getBoundingClientRect();
+const setT=o=>el(o.id).setAttribute('transform',tfm(o));
+const sels=()=>objs().filter(o=>sel.includes(o.id));
+
+/* ---------- vista (lienzo mayor que la pantalla) ---------- */
+function view(){const w=svg.clientWidth/zm,h=svg.clientHeight/zm;vx=w>=W?(W-w)/2:Math.max(0,Math.min(vx,W-w));vy=h>=H?(H-h)/2:Math.max(0,Math.min(vy,H-h));
+ svg.setAttribute('viewBox',`${vx} ${vy} ${w} ${h}`);$('#pos').textContent=`Vista ${vx|0}, ${vy|0} · Lienzo ${W}×${H} · ${Math.round(zm*100)}%`}
+const pt=e=>{const r=svg.getBoundingClientRect();return[(e.clientX-r.left)/zm+vx,(e.clientY-r.top)/zm+vy]};
+svg.onwheel=e=>{e.preventDefault();if(e.ctrlKey)return zoomTo(zm*Math.exp(-e.deltaY*.0025),e.clientX,e.clientY);vx+=(e.shiftKey?e.deltaY:e.deltaX)/zm;vy+=(e.shiftKey?0:e.deltaY)/zm;view()};
+addEventListener('resize',()=>{view();drawSel()});
+function zoomTo(z,cx,cy){z=Math.max(.1,Math.min(4,z));const r=svg.getBoundingClientRect();if(cx==null){cx=r.left+r.width/2;cy=r.top+r.height/2}
+ const wx=vx+(cx-r.left)/zm,wy=vy+(cy-r.top)/zm;zm=z;vx=wx-(cx-r.left)/zm;vy=wy-(cy-r.top)/zm;view();
+ $('#zs').value=Math.round(zm*100);$('#vz').textContent=Math.round(zm*100)+'%';drawSel()}
+$('#zs').oninput=e=>zoomTo(e.target.value/100);
+$('#zf').onclick=()=>zoomTo(Math.min(svg.clientWidth/W,svg.clientHeight/H));
+
+/* ---------- selección ---------- */
+function box(){if(!sel.length)return null;let L=1e9,T=1e9,R=-1e9,B=-1e9;
+ sel.forEach(i=>{const r=cr(i);L=Math.min(L,r.left);T=Math.min(T,r.top);R=Math.max(R,r.right);B=Math.max(B,r.bottom)});
+ const s=svg.getBoundingClientRect();return{x:(L-s.left)/zm+vx,y:(T-s.top)/zm+vy,w:(R-L)/zm,h:(B-T)/zm}}
+function drawSel(){const b=box();ov.innerHTML=b?`<rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" fill="rgba(37,99,235,.06)" stroke="#2563eb" stroke-dasharray="6 4" vector-effect="non-scaling-stroke" pointer-events="none"/><line x1="${b.x+b.w/2}" y1="${b.y}" x2="${b.x+b.w/2}" y2="${b.y-28/zm}" stroke="#2563eb" vector-effect="non-scaling-stroke" pointer-events="none"/><circle id="rh" cx="${b.x+b.w/2}" cy="${b.y-28/zm}" r="${10/zm}" fill="#2563eb" style="cursor:grab"/>`:''}
+const hit=e=>{const a=objs();for(let i=a.length-1;i>=0;i--){const r=cr(a[i].id);if(e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom)return a[i]}};
+function rot(deg,G){const a=deg*Math.PI/180,c=Math.cos(a),s=Math.sin(a);
+ sels().forEach(o=>{const[cx,cy]=ctr(o),dx=o.tx+cx-G[0],dy=o.ty+cy-G[1];
+  o.tx=G[0]+dx*c-dy*s-cx;o.ty=G[1]+dx*s+dy*c-cy;o.r=(o.r+deg)%360;setT(o)});drawSel()}
+
+svg.onpointerdown=e=>{svg.setPointerCapture(e.pointerId);const p=pt(e);
+ if(tool=='hand')drag={k:'hand',sx:e.clientX,sy:e.clientY,vx,vy};
+ else if(tool=='pen'){sel=[];drawSel();const o={id:nid(),t:'p',pts:[p],c:$('#col').value,s:+$('#szp').value,tx:0,ty:0,r:0};bb(o);const s=snap();objs().push(o);layer.insertAdjacentHTML('beforeend',gs(o));drag={k:'pen',o,s,pe:layer.lastElementChild.firstChild}}
+ else if(tool=='eye'){const a=objs();for(let i=a.length-1;i>=0;i--)if(a[i].t=='p'&&near(a[i],p,6)){$('#col').value=a[i].c;setTool('pen');return msg('Color tomado: '+a[i].c)}msg('Pulsa sobre un trazo para tomar su color')}
+ else if(tool=='er'){sel=[];drawSel();drag={k:'er',s:snap(),n:0,m:new Map()};erase(e)}
+ else if(e.target.id=='rh'){const b=box(),G=[b.x+b.w/2,b.y+b.h/2];drag={k:'rot',s:snap(),G,a:Math.atan2(p[1]-G[1],p[0]-G[0])}}
+ else{const b=box(),inB=b&&p[0]>=b.x&&p[0]<=b.x+b.w&&p[1]>=b.y&&p[1]<=b.y+b.h,h=hit(e);
+  if(inB||h){let was=h&&sel.includes(h.id);if(!inB&&!(e.shiftKey)){sel=[h.id]}else if(e.shiftKey&&h&&!sel.includes(h.id))sel.push(h.id);drawSel();drag={k:'mv',s:snap(),last:p,moved:false,vid:h&&h.t=='v'&&was?h.id:null}}
+  else{sel=[];drawSel();drag={k:'band',p0:p,c0:[e.clientX,e.clientY]}}}};
+svg.onpointermove=e=>{if(tool=='er'){const q=pt(e);ov.innerHTML=`<circle cx="${q[0]}" cy="${q[1]}" r="${+$('#sze').value/2}" fill="none" stroke="#ef4444" vector-effect="non-scaling-stroke" pointer-events="none"/>`}if(!drag)return;const p=pt(e);
+ if(drag.k=='hand'){vx=drag.vx-(e.clientX-drag.sx)/zm;vy=drag.vy-(e.clientY-drag.sy)/zm;view()}
+ else if(drag.k=='er')erase(e);
+ else if(drag.k=='pen'){drag.o.pts.push(p);bb(drag.o);drag.pe.setAttribute('d',dd(drag.o))}
+ else if(drag.k=='mv'){const dx=p[0]-drag.last[0],dy=p[1]-drag.last[1];if(dx||dy)drag.moved=true;drag.last=p;sels().forEach(o=>{o.tx+=dx;o.ty+=dy;setT(o)});drawSel()}
+ else if(drag.k=='rot'){const a=Math.atan2(p[1]-drag.G[1],p[0]-drag.G[0]),d=(a-drag.a)*180/Math.PI;drag.a=a;rot(d,drag.G)}
+ else if(drag.k=='band'){const x=Math.min(p[0],drag.p0[0]),y=Math.min(p[1],drag.p0[1]);ov.innerHTML=`<rect x="${x}" y="${y}" width="${Math.abs(p[0]-drag.p0[0])}" height="${Math.abs(p[1]-drag.p0[1])}" fill="rgba(37,99,235,.08)" stroke="#2563eb" stroke-dasharray="4 3" vector-effect="non-scaling-stroke"/>`}};
+svg.onpointerup=e=>{if(!drag)return;const d=drag;drag=null;
+ if(d.k=='pen'){if(d.o.pts.length==1)d.o.pts.push([...d.o.pts[0]]);bb(d.o);d.pe.setAttribute('d',dd(d.o));U.push(d.s);R=[];save()}
+ else if(d.k=='mv'){if(!d.moved&&d.vid){const v=el(d.vid).querySelector('video');v.paused?v.play():v.pause()}if(d.moved){U.push(d.s);R=[];save()}}
+ else if(d.k=='rot'){U.push(d.s);R=[];save()}
+ else if(d.k=='er'&&d.n){U.push(d.s);R=[];save()}
+ else if(d.k=='band'){const l=Math.min(d.c0[0],e.clientX),r=Math.max(d.c0[0],e.clientX),t=Math.min(d.c0[1],e.clientY),b=Math.max(d.c0[1],e.clientY);
+  sel=objs().filter(o=>{const q=cr(o.id);return q.right>=l&&q.left<=r&&q.bottom>=t&&q.top<=b}).map(o=>o.id);drawSel()}};
+
+/* ---------- historial (deshacer / rehacer) y goma ---------- */
+let U=[],R=[];
+const snap=()=>objs().map(o=>({...o}));
+function push(){U.push(snap());if(U.length>100)U.shift();R=[]}
+function restore(s){S.nbs[S.c].pgs[S.p]=s;sel=[];render();save()}
+function undo(){if(!U.length)return msg('Nada que deshacer');R.push(snap());restore(U.pop())}
+function redo(){if(!R.length)return msg('Nada que rehacer');U.push(snap());restore(R.pop())}
+$('#bun').onclick=undo;$('#bre').onclick=redo;
+function wp(o,x,y){const[cx,cy]=ctr(o),a=o.r*Math.PI/180,c=Math.cos(a),s=Math.sin(a),dx=x-cx,dy=y-cy;return[o.tx+cx+dx*c-dy*s,o.ty+cy+dx*s+dy*c]}
+function near(o,p,r){const q=o.pts.map(z=>wp(o,z[0],z[1])),rr=r+o.s/2;
+ for(let i=0;i<q.length;i++){const a=q[i],b=q[Math.min(i+1,q.length-1)],X=b[0]-a[0],Y=b[1]-a[1],l=X*X+Y*Y;let u=l?((p[0]-a[0])*X+(p[1]-a[1])*Y)/l:0;u=Math.max(0,Math.min(1,u));if(Math.hypot(a[0]+u*X-p[0],a[1]+u*Y-p[1])<=rr)return 1}}
+function inv(o,x,y){const[cx,cy]=ctr(o),a=o.r*Math.PI/180,c=Math.cos(a),s=Math.sin(a),dx=x-o.tx-cx,dy=y-o.ty-cy;return[+(cx+dx*c+dy*s).toFixed(1),+(cy-dx*s+dy*c).toFixed(1)]}
+function erase(e){const p=pt(e),w=+$('#sze').value,r=w/2,d=drag,tc=new Set();
+ objs().forEach(o=>{const q=cr(o.id),ok=o.t=='p'?near(o,p,r):(e.clientX>=q.left-r&&e.clientX<=q.right+r&&e.clientY>=q.top-r&&e.clientY<=q.bottom+r);
+  if(!ok)return;tc.add(o.id);const l=inv(o,p[0],p[1]);let st=d.m.get(o.id);
+  if(!st){st={w,pts:[l,[...l]]};o.er=[...(o.er||[]),st];d.m.set(o.id,st)}else st.pts.push(l);
+  d.n++;const m=el(o.id).querySelector('mask');if(m)m.innerHTML=mk(o);else el(o.id).outerHTML=gs(o)});
+ [...d.m.keys()].forEach(k=>{if(!tc.has(k))d.m.delete(k)})}
+
+/* ---------- acciones sobre la selección ---------- */
+const clone=x=>JSON.parse(JSON.stringify(x));
+function copy(){clip=clone(sels());msg(clip.length?clip.length+' elemento(s) copiados':'Nada seleccionado')}
+function del(){if(!sel.length)return;push();S.nbs[S.c].pgs[S.p]=objs().filter(o=>!sel.includes(o.id));sel=[];render();save()}
+function paste(){if(!clip.length)return;push();const n=clip.map(o=>({...clone(o),id:nid(),tx:o.tx+24,ty:o.ty+24}));objs().push(...n);clip=clone(n);sel=n.map(o=>o.id);render();save()}
+$('#bcopy').onclick=copy;$('#bdel').onclick=del;$('#bpaste').onclick=paste;
+$('#bcut').onclick=()=>{copy();del()};
+const rotBtn=d=>{const b=box();if(b){push();rot(d,[b.x+b.w/2,b.y+b.h/2]);save()}};
+$('#rl').onclick=()=>rotBtn(-15);$('#rr').onclick=()=>rotBtn(15);
+addEventListener('keydown',e=>{if(/INPUT|SELECT/.test(e.target.tagName))return;const k=e.key.toLowerCase(),m=e.ctrlKey||e.metaKey;
+ if(k=='delete'||k=='backspace'){del();e.preventDefault()}else if(k=='escape'){sel=[];drawSel()}
+ else if(m&&k=='z'){e.shiftKey?redo():undo();e.preventDefault()}else if(m&&k=='y'){redo();e.preventDefault()}
+ else if(m&&k=='c')copy();else if(m&&k=='x'){copy();del()}else if(m&&k=='v')paste()});
+
+/* ---------- insertar imágenes y vídeos ---------- */
+function add(t,src,w,h){const k=Math.min(1,500/w,400/h);w*=k;h*=k;
+ const o={id:nid(),t,src,tx:Math.round(vx+svg.clientWidth/zm/2-w/2),ty:Math.round(vy+svg.clientHeight/zm/2-h/2),r:0,b:{x:0,y:0,w,h}};
+ push();objs().push(o);sel=[o.id];render();setTool('sel');save()}
+function ins(f,vid){const r=new FileReader();r.onload=()=>{const m=document.createElement(vid?'video':'img');
+ m.onload=m.onloadedmetadata=()=>add(vid?'v':'i',r.result,m.videoWidth||m.naturalWidth,m.videoHeight||m.naturalHeight);
+ m.onerror=()=>msg('No se pudo leer el archivo');m.src=r.result};r.readAsDataURL(f)}
+$('#bimg').onclick=()=>$('#fi').click();$('#bvid').onclick=()=>$('#fv').click();
+$('#fi').onchange=e=>{[...e.target.files].forEach(f=>ins(f,0));e.target.value=''};
+$('#fv').onchange=e=>{[...e.target.files].forEach(f=>ins(f,1));e.target.value=''};
+
+/* ---------- herramientas, cuadernos y páginas ---------- */
+function setT_(t){tool=t;document.querySelectorAll('[data-tool]').forEach(b=>b.classList.toggle('on',b.dataset.tool==t));svg.style.cursor={hand:'grab',pen:'crosshair',er:'cell',eye:'crosshair',sel:'default'}[t];drawSel()}
+const setTool=setT_;document.querySelectorAll('[data-tool]').forEach(b=>b.onclick=()=>setTool(b.dataset.tool));
+function fillNb(){const s=$('#nb');s.innerHTML='';S.nbs.forEach((n,i)=>{const o=document.createElement('option');o.value=i;o.textContent=n.n||'(sin nombre)';s.appendChild(o)});s.value=S.c}
+function render(){const n=S.nbs[S.c];S.p=Math.min(S.p,n.pgs.length-1);layer.innerHTML=objs().map(gs).join('');
+ sel=sel.filter(i=>objs().some(o=>o.id==i));$('#pn').textContent=`${S.p+1} / ${n.pgs.length}`;$('#nm').value=n.n;$('#nb').value=S.c;drawSel()}
+const go=(c,p)=>{U=[];R=[];sel=[];S.c=c;S.p=p;render();save()};
+function sure(b,f){if(b.dataset.s){delete b.dataset.s;b.textContent=b.dataset.t;f()}else{b.dataset.t=b.textContent;b.dataset.s=1;b.textContent='¿Seguro?';setTimeout(()=>{if(b.dataset.s){delete b.dataset.s;b.textContent=b.dataset.t}},2500)}}
+$('#nb').onchange=e=>go(+e.target.value,0);
+$('#nm').oninput=e=>{S.nbs[S.c].n=e.target.value;fillNb();save()};
+$('#nn').onclick=()=>{S.nbs.push({n:'Cuaderno '+(S.nbs.length+1),pgs:[[]]});fillNb();go(S.nbs.length-1,0)};
+$('#dn').onclick=e=>sure(e.target,()=>{if(S.nbs.length>1)S.nbs.splice(S.c,1);else S.nbs[0].pgs=[[]];fillNb();go(Math.min(S.c,S.nbs.length-1),0)});
+$('#pp').onclick=()=>S.p>0&&go(S.c,S.p-1);$('#pq').onclick=()=>S.p<S.nbs[S.c].pgs.length-1&&go(S.c,S.p+1);
+$('#pa').onclick=()=>{S.nbs[S.c].pgs.splice(S.p+1,0,[]);go(S.c,S.p+1)};
+$('#pd').onclick=e=>sure(e.target,()=>{const g=S.nbs[S.c].pgs;if(g.length>1)g.splice(S.p,1);else g[0]=[];go(S.c,Math.min(S.p,g.length-1))});
+
+/* ---------- guardar (un SVG por página) y cargar ---------- */
+function pageSVG(nb,i){const meta=JSON.stringify({nb:nb.n,page:i+1,total:nb.pgs.length,objs:nb.pgs[i]}).replace(/]]>/g,']]]]><![CDATA[>');
+ return`<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}"><metadata id="pizarra-data"><![CDATA[${meta}]]></metadata><rect width="${W}" height="${H}" fill="#fff"/>${nb.pgs[i].map(gs).join('')}</svg>`}
+function dl(name,txt){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type:'image/svg+xml'}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000)}
+$('#bsave').onclick=()=>{const nb=S.nbs[S.c],base=(nb.n||'cuaderno').replace(/[^\w-]+/g,'_');
+ nb.pgs.forEach((_,i)=>setTimeout(()=>dl(`${base}_p${i+1}.svg`,pageSVG(nb,i)),i*450));msg(`Guardando ${nb.pgs.length} SVG…`)};
+$('#bload').onclick=()=>$('#ld').click();
+$('#ld').onchange=async e=>{const g={};let bad=0;
+ const all=[...e.target.files],ol=all.filter(f=>/\.(olf|zip|json)$/i.test(f.name));let okO=0;
+ for(const f of ol){try{await loadOlf(f);okO++}catch(x){bad++;console.error(x)}}
+ for(const f of all.filter(f=>!ol.includes(f))){try{const d=new DOMParser().parseFromString(await f.text(),'image/svg+xml'),j=JSON.parse(d.querySelector('#pizarra-data').textContent);(g[j.nb]=g[j.nb]||[]).push(j)}catch(x){bad++}}
+ e.target.value='';const names=Object.keys(g);
+ names.forEach(n=>S.nbs.push({n,pgs:g[n].sort((a,b)=>a.page-b.page).map(j=>j.objs)}));
+ if(names.length){fillNb();go(S.nbs.length-1,0);msg(`Cargados ${names.length} cuaderno(s)`+(bad?` · ${bad} archivo(s) no válidos`:''))}else if(bad&&!okO)msg('No se pudieron leer los archivos')};
+
+/* ---------- OLF (zip + content.json) ---------- */
+const te=new TextEncoder(),CT=(()=>{const a=[];for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;a[n]=c>>>0}return a})();
+const crc=u=>{let c=-1;for(let i=0;i<u.length;i++)c=CT[(c^u[i])&255]^(c>>>8);return(c^-1)>>>0};
+const pipe=async(d,S_)=>new Uint8Array(await new Response(new Blob([d]).stream().pipeThrough(S_)).arrayBuffer());
+async function unzip(buf){const dv=new DataView(buf),u=new Uint8Array(buf),out={};let e=u.length-22;while(e>=0&&dv.getUint32(e,true)!=0x06054b50)e--;if(e<0)throw Error('zip');
+ const n=dv.getUint16(e+10,true);let p=dv.getUint32(e+16,true);
+ for(let i=0;i<n;i++){const m=dv.getUint16(p+10,true),cs=dv.getUint32(p+20,true),nl=dv.getUint16(p+28,true),xl=dv.getUint16(p+30,true),cl=dv.getUint16(p+32,true),lo=dv.getUint32(p+42,true),name=new TextDecoder().decode(u.subarray(p+46,p+46+nl));
+  p+=46+nl+xl+cl;const ds=lo+30+dv.getUint16(lo+26,true)+dv.getUint16(lo+28,true),raw=u.subarray(ds,ds+cs);
+  if(!name.endsWith('/'))out[name]=m==0?raw:await pipe(raw,new DecompressionStream('deflate-raw'))}
+ return out}
+async function zip(files){const parts=[],cen=[],ks=Object.keys(files);let off=0;
+ for(const name of ks){const data=files[name],nb=te.encode(name),c=crc(data);let d=data,m=0;
+  try{const z=await pipe(data,new CompressionStream('deflate-raw'));if(z.length<data.length){d=z;m=8}}catch(x){}
+  const h=new DataView(new ArrayBuffer(30));h.setUint32(0,0x04034b50,true);h.setUint16(4,20,true);h.setUint16(6,0x800,true);h.setUint16(8,m,true);h.setUint32(14,c,true);h.setUint32(18,d.length,true);h.setUint32(22,data.length,true);h.setUint16(26,nb.length,true);
+  const g=new DataView(new ArrayBuffer(46));g.setUint32(0,0x02014b50,true);g.setUint16(4,20,true);g.setUint16(6,20,true);g.setUint16(8,0x800,true);g.setUint16(10,m,true);g.setUint32(16,c,true);g.setUint32(20,d.length,true);g.setUint32(24,data.length,true);g.setUint16(28,nb.length,true);g.setUint32(42,off,true);
+  parts.push(new Uint8Array(h.buffer),nb,d);cen.push(new Uint8Array(g.buffer),nb);off+=30+nb.length+d.length}
+ const e=new DataView(new ArrayBuffer(22));e.setUint32(0,0x06054b50,true);e.setUint16(8,ks.length,true);e.setUint16(10,ks.length,true);e.setUint32(12,cen.reduce((a,x)=>a+x.length,0),true);e.setUint32(16,off,true);
+ return new Blob([...parts,...cen,new Uint8Array(e.buffer)],{type:'application/zip'})}
+const mat=o=>{const[cx,cy]=ctr(o),a=o.r*Math.PI/180,A=Math.cos(a),B=Math.sin(a),C=-B;return[A,C,cx-(A*cx+C*cy)+o.tx,B,A,cy-(B*cx+A*cy)+o.ty,0,0,1].map(v=>+v.toFixed(5)).join(',')};
+const mm=s=>{const m=String(s||'').split(',').map(Number);return m.length==9&&m.every(isFinite)?{a:m[0],c:m[1],e:m[2],b:m[3],d:m[4],f:m[5]}:{a:1,b:0,c:0,d:1,e:0,f:0}};
+const sd=(q,a,b)=>{const X=b[0]-a[0],Y=b[1]-a[1],l=X*X+Y*Y;let u=l?((q[0]-a[0])*X+(q[1]-a[1])*Y)/l:0;u=Math.max(0,Math.min(1,u));return Math.hypot(a[0]+u*X-q[0],a[1]+u*Y-q[1])};
+function cutPts(o){if(!o.er||!o.er.length)return[o.pts];const dn=[];
+ o.pts.forEach((a,i)=>{const b=o.pts[i+1]||a,n=Math.max(1,Math.ceil(Math.hypot(b[0]-a[0],b[1]-a[1])/3));for(let k=0;k<n;k++)dn.push([a[0]+(b[0]-a[0])*k/n,a[1]+(b[1]-a[1])*k/n])});dn.push(o.pts[o.pts.length-1]);
+ const hitE=q=>o.er.some(s=>s.pts.some((a,i)=>sd(q,a,s.pts[Math.min(i+1,s.pts.length-1)])<=s.w/2)),out=[];let cur=[];
+ dn.forEach(q=>{if(hitE(q)){if(cur.length)out.push(cur);cur=[]}else cur.push(q)});if(cur.length)out.push(cur);return out}
+const MT={png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/gif',webp:'image/webp',svg:'image/svg+xml',mp4:'video/mp4',webm:'video/webm',ogv:'video/ogg',mov:'video/quicktime'};
+async function olfBlob(nb){const files={},pages=[];let k=0;
+ for(const os of nb.pgs){const els=[];
+  for(const o of os){const m=mat(o);
+   if(o.t=='p')cutPts(o).forEach((pp,i)=>{if(pp.length==1)pp=[pp[0],pp[0]];els.push({stroke:{id:o.id+(i?'_'+i:''),points:pp.map(q=>q.map(v=>+v.toFixed(2)).join(',')).join(' '),stroke:o.c,opacity:o.op??1,'pen-width':o.s,'pen-type':'pen','is-highlighter':false,matrix:m}})});
+   else{const mt=(/^data:([^;,]+)/.exec(o.src)||[])[1]||'application/octet-stream',ext=Object.keys(MT).find(x=>MT[x]==mt)||mt.split('/')[1],name=`resources/${o.id}.${ext}`;
+    files[name]=new Uint8Array(await(await fetch(o.src)).arrayBuffer());
+    els.push({[o.t=='i'?'image':'video']:{id:o.id,x:0,y:0,width:o.b.w,height:o.b.h,href:name,matrix:m}})}}
+  pages.push({page:{id:'page'+(++k),viewbox:`0 0 ${W} ${H}`,matrix:'1,0,0,0,1,0,0,0,1',backgrounds:[{background:{fill:'#FFFFFF',opacity:1}}],elements:els}})}
+ files['content.json']=te.encode(JSON.stringify({olf:{meta:nb.meta||{title:nb.n},pageset:pages,additional:[]}}));
+ return zip(files)}
+function strokeObj(s,ox,oy){const v=String(s.points||'').trim().split(/\s+/).map(q=>q.split(',').map(Number)).filter(q=>q.length==2&&q.every(isFinite));if(!v.length)return;
+ const M=mm(s.matrix),pts=v.map(([x,y])=>[+(M.a*x+M.c*y+M.e-ox).toFixed(2),+(M.b*x+M.d*y+M.f-oy).toFixed(2)]);if(pts.length==1)pts.push([...pts[0]]);
+ const o={id:nid(),t:'p',pts,c:s.stroke||'#000000',s:(+s['pen-width']||16)*Math.sqrt(Math.abs(M.a*M.d-M.b*M.c))||1,op:s.opacity==null?1:+s.opacity,tx:0,ty:0,r:0};bb(o);return o}
+async function mediaObj(el,files,ox,oy){const k=Object.keys(el||{}).find(k=>el[k]&&typeof el[k]=='object'&&/image|img|pic|video|media/i.test(k));if(!k)return;
+ const d=el[k],vid=/video|media/i.test(k),h=String(d.href||d['xlink:href']||d.src||d.url||d.resource||d.file||'');if(!h)return;let src;
+ if(/^data:/.test(h))src=h;else{const n=Object.keys(files).find(n=>n==h||n==decodeURIComponent(h)||n.endsWith('/'+h.split('/').pop()));if(!n)return;
+  const mt=MT[n.split('.').pop().toLowerCase()]||'application/octet-stream';
+  src=await new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.readAsDataURL(new Blob([files[n]],{type:mt}))})}
+ let w=+d.width,hh=+d.height;if(!(w>0&&hh>0)){const m=document.createElement(vid?'video':'img');await new Promise(r=>{m.onload=m.onloadedmetadata=m.onerror=r;m.src=src});w=m.videoWidth||m.naturalWidth||400;hh=m.videoHeight||m.naturalHeight||300}
+ const M=mm(d.matrix),W2=w*(Math.hypot(M.a,M.b)||1),H2=hh*(Math.hypot(M.c,M.d)||1),x=+d.x||0,y=+d.y||0,
+ cx=M.a*(x+w/2)+M.c*(y+hh/2)+M.e-ox,cy=M.b*(x+w/2)+M.d*(y+hh/2)+M.f-oy;
+ return{id:nid(),t:vid?'v':'i',src,tx:cx-W2/2,ty:cy-H2/2,r:Math.atan2(M.b,M.a)*180/Math.PI,b:{x:0,y:0,w:W2,h:H2}}}
+function center(os){let a=1e9,b=1e9,c=-1e9,d=-1e9;
+ os.forEach(o=>{const[cx,cy]=ctr(o),r=o.r*Math.PI/180,C=Math.cos(r),Q=Math.sin(r);
+  [[o.b.x,o.b.y],[o.b.x+o.b.w,o.b.y],[o.b.x,o.b.y+o.b.h],[o.b.x+o.b.w,o.b.y+o.b.h]].forEach(([x,y])=>{const X=o.tx+cx+(x-cx)*C-(y-cy)*Q,Y=o.ty+cy+(x-cx)*Q+(y-cy)*C;a=Math.min(a,X);c=Math.max(c,X);b=Math.min(b,Y);d=Math.max(d,Y)})});
+ const dx=W/2-(a+c)/2,dy=H/2-(b+d)/2;os.forEach(o=>{o.tx+=dx;o.ty+=dy})}
+async function parseOlf(buf){let files={},j;const dec=u=>JSON.parse(new TextDecoder().decode(u).replace(/^\uFEFF/,''));
+ if(new Uint8Array(buf)[0]==0x50){files=await unzip(buf);const ks=Object.keys(files),n=ks.find(x=>/(^|\/)content\.json$/.test(x))||ks.find(x=>/\.json$/i.test(x));if(!n)throw Error('sin JSON');j=dec(files[n])}else j=dec(new Uint8Array(buf));
+ const olf=j.olf||j,pgs=[];let skip=0;
+ for(const pd of olf.pageset||[]){const pg=pd.page||{},vb=String(pg.viewbox||'0 0 3840 2160').split(/\s+/).map(Number),out=[];
+  for(const el of pg.elements||[]){const o=el&&el.stroke?strokeObj(el.stroke,vb[0]||0,vb[1]||0):await mediaObj(el,files,vb[0]||0,vb[1]||0);o?out.push(o):skip++}
+  if(out.length)center(out);pgs.push(out)}
+ if(!pgs.length)throw Error('sin páginas');return{pgs,skip,meta:olf.meta}}
+async function loadOlf(f){const r=await parseOlf(await f.arrayBuffer());
+ S.nbs.push({n:f.name.replace(/\.[^.]+$/,''),pgs:r.pgs,meta:r.meta});fillNb();go(S.nbs.length-1,0);
+ msg(`OLF cargado: ${r.pgs.length} página(s)`+(r.skip?` · ${r.skip} elemento(s) no compatibles ignorados`:''))}
+$('#bolf').onclick=async()=>{const nb=S.nbs[S.c];try{msg('Generando OLF…');const a=document.createElement('a');a.href=URL.createObjectURL(await olfBlob(nb));a.download=(nb.n||'cuaderno').replace(/[^\w-]+/g,'_')+'.olf';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000);msg('OLF guardado')}catch(x){msg('Error al generar el OLF');console.error(x)}};
+/* ---------- fin OLF ---------- */
+svg.onpointerleave=()=>{if(tool=='er'&&!drag)ov.innerHTML=''};
+['#1a1a1a','#dc2626','#ea580c','#facc15','#16a34a','#0891b2','#2563eb','#9333ea','#ec4899','#6b7280'].forEach(c=>{const b=document.createElement('button');b.style.cssText=`background:${c};width:22px;height:22px;padding:0;border-radius:50%`;b.title=c;b.onclick=()=>{$('#col').value=c;if(tool!='pen')setTool('pen')};$('#pal').appendChild(b)});
+[['szp','vp'],['sze','ve']].forEach(([a,b])=>{const i=$('#'+a);i.oninput=()=>$('#'+b).textContent=i.value});
+view();setTool('sel');fillNb();render();
+</script></body></html>
