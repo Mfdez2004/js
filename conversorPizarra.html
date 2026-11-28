@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OLF / Notebook → PDF normalizado</title>
+<style>
+  :root { --bg:#f6f6f4; --fg:#1d1d1b; --muted:#6b6b66; --card:#fff; --line:#d9d9d3; --accent:#2f5bea; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#161617; --fg:#ececea; --muted:#9a9a94; --card:#212123; --line:#3a3a3d; --accent:#7b9cff; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; font:16px/1.5 system-ui,-apple-system,Segoe UI,sans-serif; background:var(--bg); color:var(--fg); }
+  main { max-width:760px; margin:0 auto; padding:32px 20px 60px; }
+  h1 { font-size:1.6rem; margin:0 0 4px; }
+  p.sub { color:var(--muted); margin:0 0 24px; }
+  #drop { display:block; border:2px dashed var(--line); background:var(--card); border-radius:14px; padding:40px 20px;
+          text-align:center; cursor:pointer; transition:border-color .15s; }
+  #drop.over, #drop:hover { border-color:var(--accent); }
+  #drop strong { display:block; font-size:1.1rem; margin-bottom:4px; }
+  #drop span { color:var(--muted); font-size:.9rem; }
+  #log { margin-top:20px; background:var(--card); border:1px solid var(--line); border-radius:10px; padding:12px 14px;
+         font:13px/1.6 ui-monospace,Menlo,Consolas,monospace; white-space:pre-wrap; max-height:220px; overflow:auto; display:none; }
+  #acciones { margin-top:16px; display:none; gap:10px; flex-wrap:wrap; }
+  button { font:inherit; padding:10px 18px; border-radius:8px; border:1px solid var(--accent); background:var(--accent);
+           color:#fff; cursor:pointer; }
+  button.sec { background:transparent; color:var(--accent); }
+  iframe { width:100%; height:560px; margin-top:20px; border:1px solid var(--line); border-radius:10px; background:#fff; display:none; }
+</style>
+</head>
+<body>
+<main>
+  <h1>OLF / Notebook → PDF normalizado</h1>
+  <p class="sub">El tipo de archivo se detecta por su extensión. Todo se procesa en tu navegador; nada se sube a ningún sitio.</p>
+
+  <label id="drop">
+    <strong>Arrastra aquí tu archivo</strong>
+    <span><b>.olf</b> · <b>.notebook</b> · también .json, .svg o .zip</span>
+    <input id="file" type="file" multiple hidden>
+  </label>
+
+  <div id="log"></div>
+  <div id="acciones">
+    <button id="btnDescargar">Descargar PDF</button>
+    <button id="btnVer" class="sec">Ver / ocultar vista previa</button>
+  </div>
+  <iframe id="visor" title="Vista previa del PDF"></iframe>
+</main>
+
+<script>
+// ---------------------------------------------------------------------------
+// Configuración del lienzo de salida
+// ---------------------------------------------------------------------------
+const CANVAS_W = 800, CANVAS_H = 600, PADDING = 50, STROKE_WIDTH = 2;
+const IDENTITY = "1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0";
+
+// ---------------------------------------------------------------------------
+// Utilidades
+// ---------------------------------------------------------------------------
+const fmt = (v, d = 2) => v.toFixed(d);
+function fmtCorto(v) {
+  const s = v.toFixed(3).replace(/0+$/, '').replace(/\.$/, '');
+  return (s === '' || s === '-0') ? '0' : s;
+}
+// Cualquier color CSS (#hex, #hexAA, rgb(), nombre...) -> "r g b" (0..1) vía canvas
+const _ctx = document.createElement('canvas').getContext('2d');
+function colorARgbPdf(css, def = '#000000') {
+  let r = 0, g = 0, b = 0;
+  try {
+    _ctx.fillStyle = def;
+    _ctx.fillStyle = (css || '').trim() || def;
+    const v = _ctx.fillStyle;
+    if (v[0] === '#') [r, g, b] = [1, 3, 5].map(i => parseInt(v.slice(i, i + 2), 16));
+    else [r, g, b] = v.match(/[\d.]+/g).slice(0, 3).map(Number);
+  } catch { /* negro */ }
+  return [r, g, b].map(x => fmtCorto(x / 255)).join(' ');
+}
+const ext = nombre => (nombre.match(/\.([^.\/]+)$/) || [, ''])[1].toLowerCase();
+
+// ---------------------------------------------------------------------------
+// Lector mínimo de ZIP (sin dependencias; DecompressionStream nativo)
+// ---------------------------------------------------------------------------
+function listarZip(buf) {
+  const dv = new DataView(buf);
+  let eocd = -1;
+  for (let i = buf.byteLength - 22; i >= Math.max(0, buf.byteLength - 65557); i--) {
+    if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+  }
+  if (eocd < 0) throw new Error('No es un ZIP válido.');
+  const total = dv.getUint16(eocd + 10, true);
+  let p = dv.getUint32(eocd + 16, true);
+  const dec = new TextDecoder(), entradas = [];
+  for (let n = 0; n < total; n++) {
+    if (dv.getUint32(p, true) !== 0x02014b50) break;
+    const metodo = dv.getUint16(p + 10, true), comp = dv.getUint32(p + 20, true);
+    const nl = dv.getUint16(p + 28, true), el = dv.getUint16(p + 30, true), cl = dv.getUint16(p + 32, true);
+    const off = dv.getUint32(p + 42, true);
+    const nombre = dec.decode(new Uint8Array(buf, p + 46, nl));
+    if (!nombre.endsWith('/')) entradas.push({
+      nombre,
+      async bytes() {
+        const ini = off + 30 + dv.getUint16(off + 26, true) + dv.getUint16(off + 28, true);
+        const datos = new Uint8Array(buf, ini, comp);
+        if (metodo === 0) return datos;
+        if (metodo !== 8) throw new Error('Compresión ZIP no soportada (' + metodo + ') en ' + nombre);
+        const s = new Blob([datos]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+        return new Uint8Array(await new Response(s).arrayBuffer());
+      }
+    });
+    p += 46 + nl + el + cl;
+  }
+  return entradas;
+}
+const aBuffer = b => b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength);
+
+// Todos los SVG de un ZIP, entrando también en ZIPs anidados
+async function recogerSvgs(buf, prefijo = '') {
+  const svgs = [];
+  for (const e of listarZip(buf)) {
+    const ruta = prefijo + e.nombre, x = ext(e.nombre);
+    if (x === 'svg') svgs.push({ nombre: ruta, texto: new TextDecoder().decode(await e.bytes()) });
+    else if (x === 'zip') svgs.push(...await recogerSvgs(aBuffer(await e.bytes()), ruta + '/'));
+  }
+  return svgs;
+}
+
+// ---------------------------------------------------------------------------
+// OLF: content.json -> páginas (lista de trazos con la matriz ya aplicada)
+// ---------------------------------------------------------------------------
+function trazosOlf(page) {
+  const trazos = [];
+  for (const el of (page.elements || [])) {
+    const stroke = el.stroke;
+    if (!stroke) continue;
+    const ptsStr = (stroke.points || '').trim();
+    if (!ptsStr) continue;
+    let puntos = [];
+    for (const pt of ptsStr.split(/\s+/)) {
+      const c = pt.split(',');
+      if (c.length === 2 && isFinite(c[0]) && isFinite(c[1]) && c[0] !== '' && c[1] !== '')
+        puntos.push([parseFloat(c[0]), parseFloat(c[1])]);
+    }
+    if (!puntos.length) continue;
+    const matrix = stroke.matrix;
+    if (matrix && matrix !== IDENTITY) {
+      const m = matrix.split(',').map(Number);
+      if (m.length === 9 && m.every(v => !isNaN(v)))
+        puntos = puntos.map(([x, y]) => [m[0] * x + m[1] * y + m[2], m[3] * x + m[4] * y + m[5]]);
+    }
+    let opacity = parseFloat(stroke.opacity ?? 1.0);
+    if (isNaN(opacity)) opacity = 1.0;
+    trazos.push({ points: puntos, color: stroke.stroke || '#000000', opacity: Math.max(0, Math.min(1, opacity)) });
+  }
+  return trazos;
+}
+
+async function paginasDesdeOlfJson(texto, log) {
+  let data;
+  try { data = JSON.parse(texto); } catch { throw new Error('El content.json no tiene un formato JSON válido.'); }
+  const paginas = ((data.olf || {}).pageset) || [];
+  if (!paginas.length) throw new Error('No se encontraron páginas en el OLF.');
+  log(`Se han detectado ${paginas.length} páginas OLF.`);
+  return paginas.map((pd, i) => {
+    const page = pd.page || {};
+    const bgs = page.backgrounds || [];
+    const bg = bgs.length ? ((bgs[0].background || {}).fill || '#FFFFFF') : '#FFFFFF';
+    return { nombre: `pagina${i + 1}`, trazos: trazosOlf(page), bg, modoEscala: 'olf' };
+  });
+}
+
+async function paginasDesdeOlf(buf, log) {
+  const entradas = listarZip(buf);
+  const e = entradas.find(x => x.nombre === 'content.json') || entradas.find(x => x.nombre.endsWith('/content.json'));
+  if (!e) throw new Error('No se encontró content.json dentro del OLF.');
+  return paginasDesdeOlfJson(new TextDecoder().decode(await e.bytes()), log);
+}
+
+// ---------------------------------------------------------------------------
+// Notebook: SVGs -> páginas. Se aplica 'transform' (propio y de los <g> padres)
+// ---------------------------------------------------------------------------
+// Matriz [a,b,c,d,e,f]: x' = a·x + c·y + e ; y' = b·x + d·y + f
+const mulM = (M, N) => [
+  M[0] * N[0] + M[2] * N[1], M[1] * N[0] + M[3] * N[1],
+  M[0] * N[2] + M[2] * N[3], M[1] * N[2] + M[3] * N[3],
+  M[0] * N[4] + M[2] * N[5] + M[4], M[1] * N[4] + M[3] * N[5] + M[5]];
+
+function parseTransform(str) {
+  let M = [1, 0, 0, 1, 0, 0];
+  const re = /(\w+)\s*\(([^)]*)\)/g;
+  let m;
+  while ((m = re.exec(str || ''))) {
+    const a = m[2].trim().split(/[\s,]+/).filter(Boolean).map(Number);
+    let T = null;
+    switch (m[1]) {
+      case 'matrix': if (a.length === 6) T = a; break;
+      case 'translate': T = [1, 0, 0, 1, a[0] || 0, a[1] || 0]; break;
+      case 'scale': T = [a[0], 0, 0, a.length > 1 ? a[1] : a[0], 0, 0]; break;
+      case 'rotate': {
+        const r = (a[0] || 0) * Math.PI / 180, cs = Math.cos(r), sn = Math.sin(r);
+        T = [cs, sn, -sn, cs, 0, 0];
+        if (a.length === 3) T = mulM(mulM([1, 0, 0, 1, a[1], a[2]], T), [1, 0, 0, 1, -a[1], -a[2]]);
+        break;
+      }
+      case 'skewX': T = [1, 0, Math.tan((a[0] || 0) * Math.PI / 180), 1, 0, 0]; break;
+      case 'skewY': T = [1, Math.tan((a[0] || 0) * Math.PI / 180), 0, 1, 0, 0]; break;
+    }
+    if (T && T.every(v => isFinite(v))) M = mulM(M, T);
+  }
+  return M;
+}
+
+function trazosSvg(texto) {
+  const doc = new DOMParser().parseFromString(texto, 'image/svg+xml');
+  if (doc.getElementsByTagName('parsererror').length) throw new Error('SVG mal formado');
+  const res = [];
+  for (const el of doc.getElementsByTagName('*')) {
+    if (el.localName !== 'polyline') continue;
+    const nums = ((el.getAttribute('points') || '').match(/[-+]?\d*\.\d+|[-+]?\d+/g) || []).map(Number);
+    if (!nums.length) continue;
+    if (nums.length % 2) throw new Error('polyline con número impar de coordenadas');
+
+    // Matriz acumulada: de la raíz hacia el propio elemento
+    let M = [1, 0, 0, 1, 0, 0];
+    const cadena = [];
+    for (let n = el; n && n.nodeType === 1; n = n.parentNode) cadena.unshift(n);
+    for (const n of cadena) if (n.hasAttribute('transform')) M = mulM(M, parseTransform(n.getAttribute('transform')));
+
+    const puntos = [];
+    for (let i = 0; i < nums.length; i += 2)
+      puntos.push([M[0] * nums[i] + M[2] * nums[i + 1] + M[4], M[1] * nums[i] + M[3] * nums[i + 1] + M[5]]);
+
+    const style = el.getAttribute('style') || '';
+    const st = k => (style.match(new RegExp('(?:^|;)\\s*' + k + '\\s*:\\s*([^;]+)')) || [])[1];
+    const color = (el.getAttribute('stroke') || st('stroke') || '#000000').trim();
+    let op = parseFloat(el.getAttribute('stroke-opacity') ?? st('stroke-opacity') ?? 1);
+    const op2 = parseFloat(el.getAttribute('opacity') ?? st('opacity') ?? 1);
+    op = (isNaN(op) ? 1 : op) * (isNaN(op2) ? 1 : op2);
+    res.push({ points: puntos, color, opacity: Math.max(0, Math.min(1, op)) });
+  }
+  return res;
+}
+
+function paginasDesdeSvgs(svgs, log) {
+  svgs = [...svgs].sort((a, b) => a.nombre.localeCompare(b.nombre, undefined, { numeric: true }));
+  log(`Encontrados ${svgs.length} SVG.`);
+  return svgs.map(s => {
+    try { return { nombre: s.nombre, trazos: trazosSvg(s.texto), bg: '#FFFFFF', modoEscala: 'svg' }; }
+    catch (e) { return { nombre: s.nombre, error: e.message }; }
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Normalización a 800x600 + contenido de la página PDF
+// ---------------------------------------------------------------------------
+function generarContenidoPagina({ trazos, bg, modoEscala }) {
+  if (!trazos.length) return null;
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  for (const t of trazos) for (const [x, y] of t.points) {
+    if (x < minX) minX = x; if (x > maxX) maxX = x;
+    if (y < minY) minY = y; if (y > maxY) maxY = y;
+  }
+  const cw = maxX - minX, ch = maxY - minY;
+  const drawW = CANVAS_W - PADDING * 2, drawH = CANVAS_H - PADDING * 2;
+  let scale;
+  if (modoEscala === 'olf') {            // como procesarOlfNormalizadoPDF.py
+    const e = [];
+    if (cw) e.push(drawW / cw);
+    if (ch) e.push(drawH / ch);
+    scale = e.length ? Math.min(...e) : 1;
+  } else {                               // como normAllSVGs.py
+    scale = (cw && ch) ? Math.min(drawW / cw, drawH / ch) : 1;
+  }
+
+  const c = [], gs = new Map();
+  c.push("q", `1 0 0 -1 0 ${CANVAS_H} cm`, `${colorARgbPdf(bg, '#FFFFFF')} rg`, `0 0 ${CANVAS_W} ${CANVAS_H} re f`);
+  for (const t of trazos) {
+    if (/^none$/i.test(t.color)) continue;
+    const nuevos = t.points.map(([x, y]) => [(x - minX) * scale + PADDING, (y - minY) * scale + PADDING]);
+    const opKey = fmtCorto(t.opacity);
+    if (!gs.has(opKey)) gs.set(opKey, `G${gs.size}`);
+    const rgb = colorARgbPdf(t.color);
+    c.push("q", `/${gs.get(opKey)} gs`);
+    if (nuevos.length === 1) {
+      const [cx, cy] = nuevos[0], r = STROKE_WIDTH / 2, k = 0.5522847498 * r;
+      c.push(`${rgb} rg`,
+        `${fmt(cx + r)} ${fmt(cy)} m`,
+        `${fmt(cx + r)} ${fmt(cy + k)} ${fmt(cx + k)} ${fmt(cy + r)} ${fmt(cx)} ${fmt(cy + r)} c`,
+        `${fmt(cx - k)} ${fmt(cy + r)} ${fmt(cx - r)} ${fmt(cy + k)} ${fmt(cx - r)} ${fmt(cy)} c`,
+        `${fmt(cx - r)} ${fmt(cy - k)} ${fmt(cx - k)} ${fmt(cy - r)} ${fmt(cx)} ${fmt(cy - r)} c`,
+        `${fmt(cx + k)} ${fmt(cy - r)} ${fmt(cx + r)} ${fmt(cy - k)} ${fmt(cx + r)} ${fmt(cy)} c`, "f");
+    } else {
+      c.push(`${rgb} RG`, `${STROKE_WIDTH} w 1 J 1 j`, `${fmt(nuevos[0][0])} ${fmt(nuevos[0][1])} m`);
+      for (let i = 1; i < nuevos.length; i++) c.push(`${fmt(nuevos[i][0])} ${fmt(nuevos[i][1])} l`);
+      c.push("S");
+    }
+    c.push("Q");
+  }
+  c.push("Q");
+  return { contenido: c.join("\n") + "\n", gstates: gs };
+}
+
+// ---------------------------------------------------------------------------
+// Ensamblado del PDF 1.4 a mano (todo ASCII: 1 carácter = 1 byte)
+// ---------------------------------------------------------------------------
+function escribirPdf(paginas) {
+  const partes = [], offsets = [];
+  let pos = 0;
+  const emitir = t => { partes.push(t); pos += t.length; };
+  const nuevoObjeto = cuerpo => { offsets.push(pos); emitir(`${offsets.length} 0 obj\n${cuerpo}\nendobj\n`); };
+  emitir("%PDF-1.4\n");
+  nuevoObjeto("<< /Type /Catalog /Pages 2 0 R >>");
+  nuevoObjeto(`<< /Type /Pages /Kids [ ${paginas.map((_, i) => `${3 + 2 * i} 0 R`).join(" ")} ] /Count ${paginas.length} >>`);
+  paginas.forEach(({ contenido, gstates }, i) => {
+    const gsDict = [...gstates].map(([op, n]) => `/${n} << /Type /ExtGState /CA ${op} /ca ${op} >>`).join(" ");
+    nuevoObjeto(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${CANVAS_W} ${CANVAS_H}] ` +
+                `/Resources << /ExtGState << ${gsDict} >> >> /Contents ${4 + 2 * i} 0 R >>`);
+    nuevoObjeto(`<< /Length ${contenido.length} >>\nstream\n${contenido}endstream`);
+  });
+  const xrefPos = pos, total = offsets.length + 1;
+  emitir(`xref\n0 ${total}\n`); emitir("0000000000 65535 f \n");
+  for (const o of offsets) emitir(`${String(o).padStart(10, '0')} 00000 n \n`);
+  emitir(`trailer\n<< /Size ${total} /Root 1 0 R >>\nstartxref\n${xrefPos}\n%%EOF\n`);
+  return new Blob([partes.join("")], { type: 'application/pdf' });
+}
+
+// ---------------------------------------------------------------------------
+// Detección por extensión
+// ---------------------------------------------------------------------------
+async function paginasDeArchivo(f, log) {
+  const x = ext(f.name);
+  if (x === 'olf') { log('Tipo: OLF'); return paginasDesdeOlf(await f.arrayBuffer(), log); }
+  if (x === 'notebook') { log('Tipo: Notebook'); return paginasDesdeSvgs(await recogerSvgs(await f.arrayBuffer()), log); }
+  if (x === 'json') { log('Tipo: content.json (OLF)'); return paginasDesdeOlfJson(await f.text(), log); }
+  if (x === 'svg') { log('Tipo: SVG suelto'); return paginasDesdeSvgs([{ nombre: f.name, texto: await f.text() }], log); }
+  if (x === 'zip') { // extensión genérica: se mira el contenido
+    const buf = await f.arrayBuffer();
+    if (listarZip(buf).some(e => e.nombre === 'content.json' || e.nombre.endsWith('/content.json'))) {
+      log('Tipo: ZIP con content.json (OLF)'); return paginasDesdeOlf(buf, log);
+    }
+    log('Tipo: ZIP con SVGs (Notebook)'); return paginasDesdeSvgs(await recogerSvgs(buf), log);
+  }
+  throw new Error(`Extensión no reconocida: ".${x}". Usa .olf, .notebook, .json, .svg o .zip.`);
+}
+
+// ---------------------------------------------------------------------------
+// Interfaz
+// ---------------------------------------------------------------------------
+const $ = id => document.getElementById(id);
+const logEl = $('log'), acciones = $('acciones'), visor = $('visor');
+let pdfUrl = null, nombreSalida = 'normalizado.pdf';
+function log(msg) { logEl.style.display = 'block'; logEl.textContent += msg + "\n"; logEl.scrollTop = logEl.scrollHeight; }
+
+async function procesar(files) {
+  logEl.textContent = ''; acciones.style.display = 'none'; visor.style.display = 'none';
+  if (pdfUrl) { URL.revokeObjectURL(pdfUrl); pdfUrl = null; }
+  try {
+    const paginas = [];
+    for (const f of files) {
+      log(`Leyendo "${f.name}"...`);
+      paginas.push(...await paginasDeArchivo(f, log));
+    }
+    log('Generando PDF normalizado...\n');
+    const paginasPdf = [];
+    for (const p of paginas) {
+      if (p.error) { log(`  - Error procesando ${p.nombre}: ${p.error}`); continue; }
+      const r = generarContenidoPagina(p);
+      if (r) { log(`✅ Procesada: ${p.nombre}`); paginasPdf.push(r); }
+      else log(`  - Saltando: ${p.nombre} no contiene trazos`);
+    }
+    if (!paginasPdf.length) throw new Error('Ninguna página tiene trazos; no se ha generado el PDF.');
+    const blob = escribirPdf(paginasPdf);
+    pdfUrl = URL.createObjectURL(blob);
+    nombreSalida = files[0].name.replace(/\.[^.]+$/, '') + '_normalizado.pdf';
+    log(`\n--- Finalizado: ${paginasPdf.length} páginas (${(blob.size / 1024).toFixed(1)} KB) ---`);
+    acciones.style.display = 'flex';
+    visor.src = pdfUrl; visor.style.display = 'block';
+  } catch (e) { log('Error: ' + e.message); }
+}
+
+$('file').addEventListener('change', e => { if (e.target.files.length) procesar([...e.target.files]); e.target.value = ''; });
+const drop = $('drop');
+['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', e => { if (e.dataTransfer.files.length) procesar([...e.dataTransfer.files]); });
+$('btnDescargar').addEventListener('click', () => {
+  if (!pdfUrl) return;
+  const a = document.createElement('a'); a.href = pdfUrl; a.download = nombreSalida;
+  document.body.appendChild(a); a.click(); a.remove();
+});
+$('btnVer').addEventListener('click', () => { visor.style.display = visor.style.display === 'none' ? 'block' : 'none'; });
+</script>
+</body>
+</html>
